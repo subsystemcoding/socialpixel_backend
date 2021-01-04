@@ -1,0 +1,43 @@
+name: django
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - _libgcc_mutex=0.1=main
+  - asgiref=3.3.1=pyhd3eb1b0_0
+  - ca-certificates=2020.12.8=h06a4308_0
+  - certifi=2020.12.5=py39h06a4308_0
+  - django=3.1.4=pyhd3eb1b0_0
+  - django-crispy-forms=1.10.0=pyhd8ed1ab_0
+  - freetype=2.10.4=h5ab3b9f_0
+  - jpeg=9b=h024ee3a_2
+  - krb5=1.17.1=h173b8e3_0
+  - lcms2=2.11=h396b838_0
+  - ld_impl_linux-64=2.33.1=h53a641e_7
+  - libedit=3.1.20191231=h14c3975_1
+  - libffi=3.3=he6710b0_2
+  - libgcc-ng=9.1.0=hdf63c60_0
+  - libpng=1.6.37=hbc83047_0
+  - libpq=12.2=h20c2e04_0
+  - libstdcxx-ng=9.1.0=hdf63c60_0
+  - libtiff=4.1.0=h2733197_1
+  - lz4-c=1.9.2=heb0550a_3
+  - ncurses=6.2=he6710b0_1
+  - olefile=0.46=py_0
+  - openssl=1.1.1i=h27cfd23_0
+  - pillow=8.0.1=py39he98fc37_0
+  - pip=20.3.3=py39h06a4308_0
+  - psycopg2=2.8.5=py39h3c74f83_1
+  - python=3.9.1=hdb3f193_2
+  - pytz=2020.5=pyhd3eb1b0_0
+  - readline=8.0=h7b6447c_0
+  - setuptools=51.0.0=py39h06a4308_2
+  - sqlite=3.33.0=h62c20be_0
+  - sqlparse=0.4.1=py_0
+  - tk=8.6.10=hbc83047_0
+  - tzdata=2020d=h14c3975_0
+  - wheel=0.36.2=pyhd3eb1b0_0
+  - xz=5.2.5=h7b6447c_0
+  - zlib=1.2.11=h7b6447c_3
+  - zstd=1.4.5=h9ceee32_0
+prefix: /home/asleepyguy/miniconda3/envs/django
