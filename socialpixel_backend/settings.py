@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'posts.apps.PostsConfig',
+    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -130,4 +131,4 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # User Model
-AUTH_USER_MODEL = 'auth.User'
+AUTH_USER_MODEL = 'users.User'
