@@ -29,8 +29,8 @@ class Comment(models.Model):
     post_id = models.ForeignKey(Post, on_delete=models.CASCADE)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     comment_content = models.CharField(max_length=256)
-    reply_to_comment = models.UUIDField(blank=True)
+    reply_to_comment = models.UUIDField(blank=True, null=True)
     date_created = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return self.post_id + ':' + self.comment_id
+        return str(self.post_id) + ':' + str(self.comment_id)
