@@ -34,12 +34,14 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
+    'api.apps.ApiConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'graphene_django',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +134,7 @@ STATIC_URL = '/static/'
 
 # User Model
 AUTH_USER_MODEL = 'users.User'
+
+GRAPHENE = {
+    "SCHEMA": "api.schema.schema"
+}
