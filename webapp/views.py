@@ -7,3 +7,4 @@ def home(request):
         'posts': Post.objects.all()
     }
     return render(request, 'webapp/home.html', context)
+
