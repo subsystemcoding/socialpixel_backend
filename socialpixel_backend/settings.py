@@ -184,5 +184,4 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
-
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
