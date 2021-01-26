@@ -1,16 +1,16 @@
-from PIL import Image
 from django.db import models
 from pathlib import PurePath
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
-from sorl.thumbnail import ImageField
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from imagekit.models import ProcessedImageField
+from imagekit.processors import SmartResize
 
 from .storage import OverwriteStorage
 
@@ -129,23 +129,18 @@ def profile_image_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     filename = '{}.{}'.format('profile-image', ext)
     return PurePath('profiles', instance.user.username, filename)
-
-def validate_image_extension(value):
-    valid_extensions = ['image/jpeg', 'image/png']
-    if not value.file.content_type in valid_extensions:
-        raise ValidationError(u'File not supported')
-
-
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     bio = models.CharField(_('bio'), max_length=150, blank=True)
-    image = ImageField(
+    image = ProcessedImageField(
         storage=OverwriteStorage(),
         upload_to=profile_image_upload_path, 
         blank=True, 
         help_text="Profile Picture",
         verbose_name="Profile Picture",
-        validators=[validate_image_extension]
+        processors=[SmartResize(300, 300)],
+        format='JPEG',
+        options={'quality': 85},
 )
     followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='followers', blank=True)
     following = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='following', blank=True)
