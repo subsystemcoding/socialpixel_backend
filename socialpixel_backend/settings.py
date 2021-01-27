@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
     'graphql_auth',
     'django_filters',
-    'django_cleanup',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
