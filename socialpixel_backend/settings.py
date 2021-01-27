@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'graphene_django',
     'imagekit',
-    'django_cleanup',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
