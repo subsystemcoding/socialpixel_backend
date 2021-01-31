@@ -10,11 +10,9 @@ from imagekit.processors.resize import ResizeToFill
 from upload_validator import FileTypeValidator
 from django.core.validators import FileExtensionValidator
 
+from .enums import VisibilityEnums
+
 class Post(models.Model):
-    
-    class VisibilityEnums(models.IntegerChoices):
-        VISIBLE = 0
-        HIDDEN = 1
 
     def imagepost_upload_path(instance, filename):
         ext = filename.split('.')[-1]
@@ -42,7 +40,7 @@ class Post(models.Model):
     )
     upvotes = models.PositiveIntegerField(default=0)
     views = models.PositiveIntegerField(default=0)
-    visibility = models.IntegerField(choices=VisibilityEnums.choices, default=VisibilityEnums.VISIBLE)
+    visibility = models.IntegerField(choices=VisibilityEnums.choices, default=VisibilityEnums.ACTIVE)
 
     image = models.ImageField(
         upload_to=imagepost_upload_path,
@@ -92,13 +90,18 @@ class Post(models.Model):
     def __str__(self):
         return str(self.author) + ':' + str(self.post_id)
 
+    class Meta:
+        verbose_name = 'Post'
+        verbose_name_plural = 'Posts'
+
+
 
 class Comment(models.Model):
     comment_id = models.BigAutoField(primary_key=True)
     post_id = models.ForeignKey(
         Post, 
         on_delete=models.CASCADE, 
-        related_name='commented_on'
+        related_name='comments'
     )
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='commented_by')
     comment_content = models.CharField(max_length=256)
@@ -113,3 +116,7 @@ class Comment(models.Model):
 
     def __str__(self):
         return str(self.post_id) + ':' + str(self.author) + ':' + str(self.comment_id)
+
+    class Meta:
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'

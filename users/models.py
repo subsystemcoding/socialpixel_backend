@@ -150,3 +150,8 @@ class Profile(models.Model):
         
     def save(self, *args, **kwargs):
         super(Profile, self).save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Profile'
+        verbose_name_plural = 'Profiles'
+
