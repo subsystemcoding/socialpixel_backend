@@ -43,7 +43,6 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
-    'api.apps.ApiConfig',
     'webapp.apps.WebappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -161,7 +160,7 @@ MEDIA_URL = '/media/'
 AUTH_USER_MODEL = 'users.User'
 
 GRAPHENE = {
-    "SCHEMA": "api.schema.schema",
+    "SCHEMA": "socialpixel_backend.schema.schema",
     'MIDDLEWARE': [
         'graphql_jwt.middleware.JSONWebTokenMiddleware',
     ],
