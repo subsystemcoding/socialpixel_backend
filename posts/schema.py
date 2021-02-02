@@ -1,17 +1,18 @@
 import graphene
-import base64
-from PIL import Image
-from io import BytesIO
 from graphene_django import DjangoObjectType
+from graphql import GraphQLError
 
 from .models import Post, Comment
-from users.models import Profile, User
-from users.schema import UserType
-from .enums import VisibilityEnums
+from .enums import PostVisibilityEnums
+from users.models import Profile, User, UserFollows
+from users.enums import ProfileVisibilityEnums
+class PostVisibilityType(graphene.Enum):
+    ACTIVE = PostVisibilityEnums.ACTIVE
+    HIDDEN = PostVisibilityEnums.HIDDEN
 
-class VisibilityType(graphene.Enum):
-    ACTIVE = VisibilityEnums.ACTIVE
-    HIDDEN = VisibilityEnums.HIDDEN
+class ModifierEnumsType(graphene.Enum):
+    ADD = 1
+    REMOVE = 0
 
 class PostType(DjangoObjectType):
 
@@ -21,7 +22,7 @@ class PostType(DjangoObjectType):
             self.image = info.context.build_absolute_uri(self.image.url)
         return self.image
 
-    visibility = graphene.NonNull(VisibilityType)
+    visibility = graphene.NonNull(PostVisibilityType)
     image_300x300 = graphene.String()
     image_250x250 = graphene.String()
     image_200x200 = graphene.String()
@@ -65,19 +66,27 @@ class PostsQuery(graphene.AbstractType):
 
     def resolve_post(self, info, id):
         if not info.context.user.is_authenticated:
-            raise Exception('User has to be LoggedIn to get specific posts!')
+            raise GraphQLError('You must be logged to get post by post_id!')
         else:
-            return Post.objects.get(post_id=id)
+            post = Post.objects.get(post_id=id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author.visibility == ProfileVisibilityEnums.PRIVATE) and not (UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=post.author).exists()) and not (current_user_profile==post.author):
+                raise GraphQLError('You must be following post author to get private post!')
+            else:
+                return Post.objects.get(post_id=id)
 
     def resolve_posts(self, info):
-        return Post.objects.filter(visibility=VisibilityEnums.ACTIVE)
+        public_users = Profile.objects.filter(visibility=ProfileVisibilityEnums.PUBLIC)
+        return Post.objects.filter(author__in=public_users, visibility=PostVisibilityEnums.ACTIVE).order_by('-date_created')
 
     def resolve_feed_posts(self, info):
         if not info.context.user.is_authenticated:
-            raise Exception('User has to be LoggedIn to get feed posts!')
+            raise GraphQLError('You must be logged to get post feed!')
         else:
-            followers = Profile.objects.get(user=info.context.user).followers.all()
-            return Post.objects.filter(author__in=followers.values_list('id', flat=True), visibility=VisibilityEnums.ACTIVE).order_by('-date_created')
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            following = UserFollows.objects.filter(user_profile=current_user_profile).values('following_user_profile')
+            return Post.objects.filter(author__in=following, visibility=PostVisibilityEnums.ACTIVE).order_by('-date_created')
 
 class CreatePost(graphene.Mutation):
 
@@ -93,22 +102,53 @@ class CreatePost(graphene.Mutation):
     
     def mutate(self, info, image, caption, gps_tag, tagged_users=[]):
         if not info.context.user.is_authenticated:
-            raise Exception('User has to be LoggedIn to create posts!')
+            raise GraphQLError('You must be logged to create post!')
         else:
-            post = Post(author=info.context.user, image=info.context.FILES[image], caption=caption, gps_tag=gps_tag)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            post = Post(author=current_user_profile, image=info.context.FILES[image], caption=caption, gps_tag=gps_tag)
             post.save()
 
             for user in tagged_users:
-                post.tagged_users.add(User.objects.get(username=user))
-
-            if Post.objects.get(post_id=post.post_id):
-                success = True
+                post.tagged_users.add(Profile.objects.get(user=User.objects.get(username=user)))
         
             return CreatePost(
                 post_id = post.post_id,
                 success=True
             )
 
+class PostUpvote(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
 
+    post_upvotes = graphene.Int(description="Number of upvotes for post")
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    
+    def mutate(self, info, post_id, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to upvote posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author.visibility == ProfileVisibilityEnums.PRIVATE) and not (UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=post.author).exists()) and not (current_user_profile==post.author):
+                raise GraphQLError('You must be following post author to upvote private post!')
+            else:
+                if modifier == ModifierEnumsType.ADD:
+                    if not post.upvotes.filter(user=current_user_profile).exists():
+                        post.upvotes.add(current_user_profile)
+                        post.save()
+                if modifier == ModifierEnumsType.REMOVE:
+                    if post.upvotes.filter(user=current_user_profile).exists():
+                        post.upvotes.remove(current_user_profile)
+                        post.save()
+                
+                return PostUpvote(
+                    post_upvotes = post.upvotes.count(),
+                    success=True
+                )
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
+    post_upvote = PostUpvote.Field()

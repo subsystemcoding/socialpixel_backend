@@ -1,8 +1,8 @@
 from django.db import models
-from django.conf import settings
-from django.utils import timezone
 from pathlib import PurePath
 from uuid import uuid4
+
+from users.models import Profile
 
 from imagekit.models.fields import ImageSpecField
 from imagekit.processors.resize import ResizeToFill
@@ -10,7 +10,7 @@ from imagekit.processors.resize import ResizeToFill
 from upload_validator import FileTypeValidator
 from django.core.validators import FileExtensionValidator
 
-from .enums import VisibilityEnums
+from .enums import PostVisibilityEnums
 
 class Post(models.Model):
 
@@ -26,21 +26,21 @@ class Post(models.Model):
 
     post_id = models.BigAutoField(primary_key=True)
     author = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
+        Profile, 
         on_delete=models.CASCADE,
         related_name='posted_by',
     )
-    date_created = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
     caption = models.CharField(max_length=256, blank=True)
     gps_tag = models.CharField(max_length=128, blank=True) # TODO: Update this later on to support GEOLOCATION
     tagged_users =  models.ManyToManyField(
-        settings.AUTH_USER_MODEL, 
+        Profile, 
         related_name='tagged', 
         blank=True
     )
-    upvotes = models.PositiveIntegerField(default=0)
+    upvotes = models.ManyToManyField(Profile, related_name='upvoted_by', blank=True)
     views = models.PositiveIntegerField(default=0)
-    visibility = models.IntegerField(choices=VisibilityEnums.choices, default=VisibilityEnums.ACTIVE)
+    visibility = models.IntegerField(choices=PostVisibilityEnums.choices, default=PostVisibilityEnums.ACTIVE)
 
     image = models.ImageField(
         upload_to=imagepost_upload_path,
@@ -88,7 +88,7 @@ class Post(models.Model):
     )
 
     def __str__(self):
-        return str(self.author) + ':' + str(self.post_id)
+        return str(self.author.user) + ':' + str(self.post_id)
 
     class Meta:
         verbose_name = 'Post'
@@ -103,7 +103,7 @@ class Comment(models.Model):
         on_delete=models.CASCADE, 
         related_name='comments'
     )
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='commented_by')
+    author = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='commented_by')
     comment_content = models.CharField(max_length=256)
     reply_to_comment = models.ForeignKey(
         'self', 
@@ -112,10 +112,10 @@ class Comment(models.Model):
         null=True, 
         related_name='replies'
     )
-    date_created = models.DateTimeField(default=timezone.now)
+    date_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return str(self.post_id) + ':' + str(self.author) + ':' + str(self.comment_id)
+        return str(self.post_id) + ':' + str(self.author.user) + ':' + str(self.comment_id)
 
     class Meta:
         verbose_name = 'Comment'

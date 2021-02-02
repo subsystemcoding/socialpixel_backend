@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 from graphql_auth import mutations as gqlAuthMutations
 
-from .models import User
+from .models import User, Profile
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -13,6 +13,11 @@ class UserType(DjangoObjectType):
             "first_name", "last_name",
             "date_joined"
         )
+
+class ProfileType(DjangoObjectType):
+    class Meta:
+        model = Profile
+        fields = "__all__"
 
 class UsersQuery(graphene.AbstractType):
     users = graphene.List(UserType)

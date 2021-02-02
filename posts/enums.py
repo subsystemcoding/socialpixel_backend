@@ -1,5 +1,5 @@
 from django.db import models
 
-class VisibilityEnums(models.IntegerChoices):
+class PostVisibilityEnums(models.IntegerChoices):
         ACTIVE = 0
         HIDDEN = 1
