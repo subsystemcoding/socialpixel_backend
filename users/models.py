@@ -2,10 +2,8 @@ from django.db import models
 from pathlib import PurePath
 from django.apps import apps
 from django.conf import settings
-from django.utils import timezone
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
@@ -13,6 +11,7 @@ from imagekit.models import ProcessedImageField
 from imagekit.processors import SmartResize
 
 from .storage import OverwriteStorage
+from .enums import ProfileVisibilityEnums
 
 class CustomUserManager(BaseUserManager):
     use_in_migrations = True
@@ -94,7 +93,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ),
     )
 
-    date_joined = models.DateTimeField(_('date joined'), default=timezone.now, editable=False)
+    date_joined = models.DateTimeField(_('date joined'), auto_now_add=True)
 
     objects = CustomUserManager()
 
@@ -129,9 +128,12 @@ def profile_image_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     filename = '{}.{}'.format('profile-image', ext)
     return PurePath('profiles', instance.user.username, filename)
+
+
 class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, primary_key=True, on_delete=models.CASCADE)
     bio = models.CharField(_('bio'), max_length=150, blank=True)
+    visibility = models.IntegerField(choices=ProfileVisibilityEnums.choices, default=ProfileVisibilityEnums.PUBLIC)
     image = ProcessedImageField(
         storage=OverwriteStorage(),
         upload_to=profile_image_upload_path, 
@@ -142,11 +144,40 @@ class Profile(models.Model):
         format='JPEG',
         options={'quality': 85},
 )
-    followers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='followers', blank=True)
-    following = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='following', blank=True)
+
+    @classmethod
+    def add_following(cls, user, following):
+        user = cls.objects.get(user=user)
+        following = cls.objects.get(user=following)
+        UserFollows.objects.get_or_create(user_profile=user, following_user_profile=following)
+
+    @classmethod
+    def remove_following(cls, user, following):
+        user = cls.objects.get(user=user)
+        following = cls.objects.get(user=following)
+        UserFollows.objects.get(user_profile=user, following_user_profile=following).delete()
+
 
     def __str__(self):
         return f'Profile: {str(self.user)}'
         
     def save(self, *args, **kwargs):
         super(Profile, self).save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Profile'
+        verbose_name_plural = 'Profiles'
+
+class UserFollows(models.Model):
+    user_profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="following")
+    following_user_profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="followers")
+    followed_on = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{str(self.user_profile.user)} -> {str(self.following_user_profile.user)}'
+
+    class Meta:
+        verbose_name = 'User Follows'
+        verbose_name_plural = 'User Follows'
+        unique_together = ['user_profile', 'following_user_profile']
+
