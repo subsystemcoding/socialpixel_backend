@@ -41,6 +41,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'chat.apps.ChatConfig',
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
     'webapp.apps.WebappConfig',
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     'graphql_jwt.refresh_token.apps.RefreshTokenConfig',
     'graphql_auth',
     'django_filters',
+    'storages',
     'django_cleanup.apps.CleanupConfig',
 ]
 
@@ -185,3 +187,13 @@ GRAPHQL_JWT = {
     ],
 }
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+# AWS_STORAGE_BUCKET_NAME = 'static'
+
+# AWS_ACCESS_KEY_ID = env('MINIO_ROOT_USER')
+# AWS_SECRET_ACCESS_KEY = env('MINIO_ROOT_PASSWORD')
+# AWS_S3_ENDPOINT_URL = 'http://localhost:9000'
