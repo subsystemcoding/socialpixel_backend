@@ -92,7 +92,8 @@ class CreatePost(graphene.Mutation):
 
     class Arguments:
         caption = graphene.String(default_value="", description="An (optional) textual description.")
-        gps_tag = graphene.String(default_value="", description="GPS Coordinates: Lat, Long")
+        gps_longitude = graphene.Decimal(default_value=0.0, description="GPS Coordinates: Longitude")
+        gps_latitude = graphene.Decimal(default_value=0.0, description="GPS Coordinates: Latitude")
         tagged_users = graphene.List(graphene.String, description="List of usernames of tagged users in post.")
         image = graphene.String(required=True, description="Image media for post.")
 
@@ -100,12 +101,12 @@ class CreatePost(graphene.Mutation):
     success = graphene.Boolean(default_value=False, description="Returns whether the post was created successfully.")
 
     
-    def mutate(self, info, image, caption, gps_tag, tagged_users=[]):
+    def mutate(self, info, image, caption, gps_longitude, gps_latitude, tagged_users=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create post!')
         else:
             current_user_profile = Profile.objects.get(user=info.context.user)
-            post = Post(author=current_user_profile, image=info.context.FILES[image], caption=caption, gps_tag=gps_tag)
+            post = Post(author=current_user_profile, image=info.context.FILES[image], caption=caption, gps_longitude=gps_longitude, gps_latitude=gps_latitude)
             post.save()
 
             for user in tagged_users:
