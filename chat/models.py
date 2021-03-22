@@ -1,6 +1,6 @@
 from uuid import uuid4
 from django.db import models
-from django.conf import settings
+from users.models import Profile
 from posts.models import Post
 from pathlib import PurePath
 from upload_validator import FileTypeValidator
@@ -8,16 +8,20 @@ from django.core.validators import FileExtensionValidator
 
 
 class ChatRoom(models.Model):
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='created_by', on_delete=models.CASCADE)
+    created_by = models.ForeignKey(Profile, related_name='created_by', on_delete=models.CASCADE)
     uuid = models.UUIDField(default = uuid4, editable = False) 
-    members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='member_in',)
+    members = models.ManyToManyField(Profile, related_name='member_in',)
     created_timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
         return str(self.uuid)
 
 class Message(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        Profile, 
+        on_delete=models.CASCADE,
+        related_name='messaged_by',
+    )
     uuid = models.UUIDField(default = uuid4, editable = False)
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
