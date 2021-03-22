@@ -11,7 +11,6 @@ from upload_validator import FileTypeValidator
 from django.core.validators import FileExtensionValidator
 
 from .enums import PostVisibilityEnums
-
 class Post(models.Model):
 
     def imagepost_upload_path(instance, filename):
