@@ -74,36 +74,69 @@ class CreateChatRoom(graphene.Mutation):
                 success=True
             )
 
-class PostMessage(graphene.Mutation):
+class TextMessage(graphene.Mutation):
     class Arguments:
         room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
         text = graphene.String(default_value="", description="An (optional) text message.")
-        image = graphene.String(description="Image media for chat.")
-        post = graphene.ID(description="Unique ID for post to send")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
 
-    def mutate(self, info, image, text, room, post):
+    def mutate(self, info, text, room):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create post!')
         else:
             current_user_profile = Profile.objects.get(user=info.context.user)
             chatroom = ChatRoom.objects.get(id=room)
-            message = Message(author=current_user_profile, room=chatroom)
+            message = Message(author=current_user_profile, room=chatroom, text=text)
             message.save()
-            if text:
-                message.text = text
-            if image:
-                message.image=info.context.FILES[image]
-            if post:
-                message.post = Post.objects.get(id=post)
 
-        
-            return PostMessage(
-                id = message.id,
+            return TextMessage(
                 success=True
             )
 
+class ImageMessage(graphene.Mutation):
+    class Arguments:
+        room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
+        image = graphene.String(description="Image media for chat.")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    def mutate(self, info, image, room):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to create post!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            chatroom = ChatRoom.objects.get(id=room)
+            message = Message(author=current_user_profile, room=chatroom, image=info.context.FILES[image])
+            message.save()
+
+            return TextMessage(
+                success=True
+            )
+
+class PostMessage(graphene.Mutation):
+    class Arguments:
+        room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
+        post = graphene.ID(description="Unique ID for post to send")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    def mutate(self, info, room, post):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to create post!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            chatroom = ChatRoom.objects.get(id=room)
+            message = Message(author=current_user_profile, room=chatroom, post = Post.objects.get(post_id=post))
+            message.save()
+
+            return TextMessage(
+                success=True
+            )
+
+
 class ChatMutation(graphene.ObjectType):
     create_chatroom = CreateChatRoom.Field()
+    text_message = TextMessage.Field()
+    image_message = ImageMessage.Field()
     post_message = PostMessage.Field()
