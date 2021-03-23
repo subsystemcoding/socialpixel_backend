@@ -150,6 +150,66 @@ class PostUpvote(graphene.Mutation):
                     post_upvotes = post.upvotes.count(),
                     success=True
                 )
+
+
+class PostComment(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+        text = graphene.String(required=True, description="Comment text for post")
+        # reply_to_id = graphene.ID(description="Unique ID for comment reply")
+    
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    def mutate(self, info, post_id, text):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to comment on posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author.visibility == ProfileVisibilityEnums.PRIVATE) and not (UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=post.author).exists()) and not (current_user_profile==post.author):
+                raise GraphQLError('You must be following post author to comment on private post!')
+            else:
+                comment = Comment(author=current_user_profile, post_id=post, comment_content=text)
+                comment.save()
+
+                # if reply_to_id:
+                #     comment.reply_to_comment = Comment.objects.get(comment_id=reply_to_id)
+                #     comment.save()
+                
+                return PostComment(
+                    success=True
+                )
+
+class PostCommentReply(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+        text = graphene.String(required=True, description="Comment text for post")
+        reply_to_id = graphene.ID(required=True, description="Unique ID for comment reply")
+    
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    def mutate(self, info, post_id, text, reply_to_id):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to comment on posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author.visibility == ProfileVisibilityEnums.PRIVATE) and not (UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=post.author).exists()) and not (current_user_profile==post.author):
+                raise GraphQLError('You must be following post author to comment on private post!')
+            else:
+                comment = Comment(author=current_user_profile, post_id=post, comment_content=text, reply_to_comment=Comment.objects.get(comment_id=reply_to_id))
+                comment.save()
+                
+                return PostCommentReply(
+                    success=True
+                )
+
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
     post_upvote = PostUpvote.Field()
+    post_comment = PostComment.Field()
+    post_comment_reply = PostCommentReply.Field()
