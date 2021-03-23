@@ -10,7 +10,7 @@ from django.core.validators import FileExtensionValidator
 
 class ChatRoom(models.Model):
     created_by = models.ForeignKey(Profile, related_name='created_by', on_delete=models.CASCADE)
-    name = models.TextField()
+    name = models.CharField(max_length=256)
     id = models.BigAutoField(primary_key=True)
     members = models.ManyToManyField(Profile, related_name='member_in',blank=True)
     created_timestamp = models.DateTimeField(auto_now_add=True)
@@ -31,20 +31,20 @@ class Message(models.Model):
     text = models.TextField(null=True, blank=True)
     post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True)
 
-    def imagepost_upload_path(instance, filename):
+    def chatimage_upload_path(instance, filename):
         ext = filename.split('.')[-1]
         post = f'{instance.author}:{uuid4()}'
         filename = '{}.{}'.format(post, ext)
-        return PurePath('imagemessages', filename)
+        return PurePath('chatimages', filename)
 
     image_file_validator = FileTypeValidator(
         allowed_types=['image/png', 'image/jpeg', 'image/bmp', 'image/heic', 'image/heif', 'image/tiff', 'image/gif'],
     )
 
     image = models.ImageField(
-        upload_to=imagepost_upload_path,
-        help_text="Post Image",
-        verbose_name="Post Image",
+        upload_to=chatimage_upload_path,
+        help_text="Chat Image",
+        verbose_name="Chat Image",
         validators=[image_file_validator, FileExtensionValidator(allowed_extensions=['png', 'jpg', 'jpeg', 'bmp', 'heic', 'heif', 'tiff', 'gif'])],
         # max_upload_size=52428800,
         null=True,

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'chat.apps.ChatConfig',
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
+    'game.apps.GameConfig',
     'webapp.apps.WebappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
