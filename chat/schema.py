@@ -50,17 +50,18 @@ class ChatQuery(graphene.AbstractType):
 class CreateChatRoom(graphene.Mutation):
 
     class Arguments:
-        members = graphene.List(graphene.String, description="List of usernames of tagged users in post.")
+        members = graphene.List(graphene.String, description="List of usernames of members.")
+        name = graphene.String(required=True, description="Name of Chat.")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the chatroom was created successfully.")
 
     
-    def mutate(self, info, members=[]):
+    def mutate(self, info, name, members=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create chatroom!')
         else:
             current_user_profile = Profile.objects.get(user=info.context.user)
-            chatroom = ChatRoom(created_by=current_user_profile)
+            chatroom = ChatRoom(created_by=current_user_profile, name=name)
             chatroom.save()
             chatroom.members.add(current_user_profile)
 
@@ -70,7 +71,6 @@ class CreateChatRoom(graphene.Mutation):
             chatroom.save()
         
             return CreateChatRoom(
-                id = chatroom.id,
                 success=True
             )
 

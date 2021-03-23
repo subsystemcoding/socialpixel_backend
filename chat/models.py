@@ -10,13 +10,14 @@ from django.core.validators import FileExtensionValidator
 
 class ChatRoom(models.Model):
     created_by = models.ForeignKey(Profile, related_name='created_by', on_delete=models.CASCADE)
+    name = models.TextField()
     id = models.BigAutoField(primary_key=True)
     members = models.ManyToManyField(Profile, related_name='member_in',blank=True)
     created_timestamp = models.DateTimeField(auto_now_add=True)
     last_messaged_timestamp = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
-        return str(self.id)
+        return str(self.name)
 
 class Message(models.Model):
     author = models.ForeignKey(
