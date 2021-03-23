@@ -103,7 +103,7 @@ class Game(models.Model):
         blank=True
     )
 
-    leaderboard = models.ForeignKey(Leaderboard, on_delete=models.CASCADE, blank=True)
+    leaderboard = models.ForeignKey(Leaderboard, on_delete=models.CASCADE, blank=True, null=True)
     posts = models.ManyToManyField(Post, related_name="in_game", blank=True)
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
 
