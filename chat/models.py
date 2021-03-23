@@ -1,4 +1,5 @@
 from uuid import uuid4
+from django.utils import timezone
 from django.db import models
 from users.models import Profile
 from posts.models import Post
@@ -9,12 +10,13 @@ from django.core.validators import FileExtensionValidator
 
 class ChatRoom(models.Model):
     created_by = models.ForeignKey(Profile, related_name='created_by', on_delete=models.CASCADE)
-    uuid = models.UUIDField(default = uuid4, editable = False) 
-    members = models.ManyToManyField(Profile, related_name='member_in',)
+    id = models.BigAutoField(primary_key=True)
+    members = models.ManyToManyField(Profile, related_name='member_in',blank=True)
     created_timestamp = models.DateTimeField(auto_now_add=True)
+    last_messaged_timestamp = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
-        return str(self.uuid)
+        return str(self.id)
 
 class Message(models.Model):
     author = models.ForeignKey(
@@ -22,7 +24,7 @@ class Message(models.Model):
         on_delete=models.CASCADE,
         related_name='messaged_by',
     )
-    uuid = models.UUIDField(default = uuid4, editable = False)
+    id = models.BigAutoField(primary_key=True)
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     text = models.TextField(null=True, blank=True)
