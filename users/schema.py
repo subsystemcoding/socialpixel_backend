@@ -2,9 +2,10 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 from graphql_auth import mutations as gqlAuthMutations
+from graphql import GraphQLError
 
 from .models import User, Profile
-
+from .enums import ProfileVisibilityEnums
 class UserType(DjangoObjectType):
     class Meta:
         model = User
@@ -19,6 +20,11 @@ class ProfileType(DjangoObjectType):
         model = Profile
         fields = "__all__"
 
+class ProfileVisibilityType(graphene.Enum):
+    PUBLIC = ProfileVisibilityEnums.PUBLIC
+    PRIVATE = ProfileVisibilityEnums.PRIVATE
+
+
 class UsersQuery(graphene.AbstractType):
     users = graphene.List(UserType)
     userprofile = graphene.Field(ProfileType, username=graphene.String(required=True))
@@ -31,6 +37,93 @@ class UsersQuery(graphene.AbstractType):
     def resolve_userprofile(self, info, username):
         user = User.objects.get(username=username)
         return Profile.objects.get(user=user)
+
+class EditProfileFirstName(graphene.Mutation):
+    class Arguments:
+        name = graphene.String(required=True, description="Name")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the change was successful.")
+
+    def mutate(self, info, name):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit profile!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            current_user_profile.user.first_name = name
+            current_user_profile.user.save()
+            current_user_profile.save()
+                
+            return EditProfileFirstName(
+                success=True
+            )
+
+class EditProfileLastName(graphene.Mutation):
+    class Arguments:
+        name = graphene.String(required=True, description="Name")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the change was successful.")
+
+    def mutate(self, info, name):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit profile!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            current_user_profile.user.last_name = name
+            current_user_profile.user.save()
+            current_user_profile.save()
+                
+            return EditProfileLastName(
+                success=True
+            )
+
+class EditProfileBio(graphene.Mutation):
+    class Arguments:
+        text = graphene.String(required=True, description="Bio")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the change was successful.")
+
+    def mutate(self, info, text):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit profile!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            current_user_profile.bio = text
+            current_user_profile.save()
+                
+            return EditProfileBio(
+                success=True
+            )
+
+class EditProfileVisibility(graphene.Mutation):
+    class Arguments:
+        modifier = ProfileVisibilityType(required=True, description="PRIVATE or Visibile")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
+
+    
+    def mutate(self, info, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit posts!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if modifier == ProfileVisibilityEnums.PUBLIC:
+                current_user_profile.visibility = ProfileVisibilityEnums.PUBLIC
+                current_user_profile.save()
+            if modifier == ProfileVisibilityEnums.PRIVATE:
+                current_user_profile.visibility = ProfileVisibilityEnums.PRIVATE
+                current_user_profile.save()
+
+            return EditProfileVisibility(
+                success=True
+            )
 
 class AuthMutation(graphene.ObjectType):
     register = gqlAuthMutations.Register.Field()
@@ -53,3 +146,9 @@ class AuthMutation(graphene.ObjectType):
     verify_token = gqlAuthMutations.VerifyToken.Field()
     refresh_token = gqlAuthMutations.RefreshToken.Field()
     revoke_token = gqlAuthMutations.RevokeToken.Field()
+
+    #custom mine
+    update_firstname = EditProfileFirstName.Field()
+    update_lastname = EditProfileLastName.Field()
+    update_bio = EditProfileBio.Field()
+    update_profile_visibility = EditProfileVisibility.Field()
