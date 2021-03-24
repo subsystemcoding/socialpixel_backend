@@ -234,7 +234,7 @@ class DeletePost(graphene.Mutation):
     def mutate(self, info, post_id):
 
         if not info.context.user.is_authenticated:
-            raise GraphQLError('You must be logged to delte on posts!')
+            raise GraphQLError('You must be logged to delete on posts!')
         else:
             post = Post.objects.get(post_id=post_id)
             current_user_profile = Profile.objects.get(user=info.context.user)
@@ -248,6 +248,96 @@ class DeletePost(graphene.Mutation):
                     success=True
                 )
 
+class EditPostCaption(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+        text = graphene.String(required=True, description="New Caption")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    
+    def mutate(self, info, post_id, text):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author != current_user_profile):
+                raise GraphQLError('You must be post author to edit post!')
+            else:
+                post.caption = text
+                post.save()
+                
+                return PostComment(
+                    success=True
+                )
+
+class EditPostTaggedUsers(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be modified")
+        tagged_users = graphene.List(graphene.String, description="List of usernames of to be/removed tagged users in post.")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
+
+    
+    def mutate(self, info, post_id, modifier, tagged_users):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author != current_user_profile):
+                raise GraphQLError('You must be post author to edit post!')
+            else:
+                if modifier == ModifierEnumsType.ADD:
+                    for user in tagged_users:
+                        post.tagged_users.add(Profile.objects.get(user=User.objects.get(username=user)))
+                        post.save()
+                if modifier == ModifierEnumsType.REMOVE:
+                    for user in tagged_users:
+                        post.tagged_users.remove(Profile.objects.get(user=User.objects.get(username=user)))
+                        post.save()
+                return PostUpvote(
+                    success=True
+                )
+
+class EditPostVisibility(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be modified")
+        modifier = PostVisibilityType(required=True, description="Hidden or Visibile")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
+
+    
+    def mutate(self, info, post_id, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author != current_user_profile):
+                raise GraphQLError('You must be post author to edit post!')
+            else:
+                if modifier == PostVisibilityType.ACTIVE:
+                    post.visibility = PostVisibilityEnums.ACTIVE
+                    post.save()
+                if modifier == PostVisibilityType.HIDDEN:
+                    post.visibility = PostVisibilityEnums.HIDDEN
+                    post.save()
+                return PostUpvote(
+                    success=True
+                )
+
+
+
+
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
     post_upvote = PostUpvote.Field()
@@ -255,3 +345,6 @@ class PostsMutation(graphene.ObjectType):
     post_comment_reply = PostCommentReply.Field()
     post_increment_view_counter = PostIncrementViewCounter.Field()
     delete_post = DeletePost.Field()
+    edit_post_caption = EditPostCaption.Field()
+    edit_post_tagged_users = EditPostTaggedUsers.Field()
+    edit_post_visibility = EditPostVisibility.Field()
