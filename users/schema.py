@@ -21,10 +21,15 @@ class ProfileType(DjangoObjectType):
 
 class UsersQuery(graphene.AbstractType):
     users = graphene.List(UserType)
+    userprofile = graphene.Field(ProfileType, username=graphene.String(required=True))
 
     @login_required
     def resolve_users(self, info):
         return User.objects.all()
+    
+    def resolve_userprofile(self, info, username):
+        user = User.objects.get(username=username)
+        return Profile.objects.get(user=user)
 
 class AuthMutation(graphene.ObjectType):
     register = gqlAuthMutations.Register.Field()
