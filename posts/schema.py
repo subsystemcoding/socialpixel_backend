@@ -57,7 +57,6 @@ class CommentType(DjangoObjectType):
         model = Comment
         fields = "__all__"
 
-
 class PostsQuery(graphene.AbstractType):
 
     post = graphene.Field(PostType, id=graphene.ID(required=True), description="Get one post based on given id")
@@ -150,7 +149,6 @@ class PostUpvote(graphene.Mutation):
                     post_upvotes = post.upvotes.count(),
                     success=True
                 )
-
 
 class PostComment(graphene.Mutation):
     class Arguments:
@@ -334,9 +332,6 @@ class EditPostVisibility(graphene.Mutation):
                 return PostUpvote(
                     success=True
                 )
-
-
-
 
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
