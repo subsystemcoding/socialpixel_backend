@@ -97,7 +97,7 @@ class CreatePost(graphene.Mutation):
         tagged_users = graphene.List(graphene.String, description="List of usernames of tagged users in post.")
         image = graphene.String(required=True, description="Image media for post.")
 
-    post_id = graphene.ID(description="Unique ID for post")
+    post = graphene.Field(PostType, description="Returns the new post that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the post was created successfully.")
 
     
@@ -113,7 +113,7 @@ class CreatePost(graphene.Mutation):
                 post.tagged_users.add(Profile.objects.get(user=User.objects.get(username=user)))
         
             return CreatePost(
-                post_id = post.post_id,
+                post,
                 success=True
             )
 
@@ -154,11 +154,10 @@ class PostUpvote(graphene.Mutation):
 
 class PostComment(graphene.Mutation):
     class Arguments:
-        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+        post_id = graphene.ID(required=True, description="Unique ID for post to be commented")
         text = graphene.String(required=True, description="Comment text for post")
-        # reply_to_id = graphene.ID(description="Unique ID for comment reply")
     
-    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was commented successfully.")
 
     def mutate(self, info, post_id, text):
 
@@ -173,10 +172,6 @@ class PostComment(graphene.Mutation):
             else:
                 comment = Comment(author=current_user_profile, post_id=post, comment_content=text)
                 comment.save()
-
-                # if reply_to_id:
-                #     comment.reply_to_comment = Comment.objects.get(comment_id=reply_to_id)
-                #     comment.save()
                 
                 return PostComment(
                     success=True
@@ -208,8 +203,55 @@ class PostCommentReply(graphene.Mutation):
                     success=True
                 )
 
+class PostIncrementViewCounter(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+    
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+    views = graphene.Int(description="Number of views for post")
+
+    def mutate(self, info, post_id):
+
+        post = Post.objects.get(post_id=post_id)
+        current_user_profile = Profile.objects.get(user=info.context.user)
+            
+        if (post.author.visibility == ProfileVisibilityEnums.PRIVATE) and not (UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=post.author).exists()) and not (current_user_profile==post.author):
+            raise GraphQLError('You must be following post author to view private post!')
+        else:
+            post.views = post.views + 1
+            post.save()
+                
+            return PostComment(
+                success=True
+            )
+
+class DeletePost(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be deleted")
+    
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was deleted successfully.")
+
+    def mutate(self, info, post_id):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to delte on posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author != current_user_profile):
+                raise GraphQLError('You must be post author to delete on post!')
+            else:
+                post.delete()
+                
+                return PostComment(
+                    success=True
+                )
+
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
     post_upvote = PostUpvote.Field()
     post_comment = PostComment.Field()
     post_comment_reply = PostCommentReply.Field()
+    post_increment_view_counter = PostIncrementViewCounter.Field()
+    delete_post = DeletePost.Field()

@@ -27,6 +27,7 @@ class UsersQuery(graphene.AbstractType):
     def resolve_users(self, info):
         return User.objects.all()
     
+    @login_required
     def resolve_userprofile(self, info, username):
         user = User.objects.get(username=username)
         return Profile.objects.get(user=user)
