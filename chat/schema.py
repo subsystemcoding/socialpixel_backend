@@ -210,7 +210,31 @@ class ChatMembership(graphene.Mutation):
                 success=True
             )
 
+class EditChatRoomName(graphene.Mutation):
 
+    class Arguments:
+        id = graphene.ID(required=True, description="Unique ID of Chat to be edited")
+        text = graphene.String(required=True, description="New name of ChatRoom")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the chatroom was deleted successfully.")
+
+    
+    def mutate(self, info, id, text):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to delete on posts!')
+        else:
+            chatroom = ChatRoom.objects.get(id=id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (chatroom.created_by != current_user_profile):
+                raise GraphQLError('You must be chat creator to edit name of chatroom!')
+            else:
+                chatroom.name = text
+                chatroom.save()
+                
+                return EditChatRoomName(
+                    success=True
+                )
 
 
 class ChatMutation(graphene.ObjectType):
@@ -221,3 +245,4 @@ class ChatMutation(graphene.ObjectType):
     post_message = PostMessage.Field()
     delete_message = DeleteMessage.Field()
     modify_membership_chatroom = ChatMembership.Field()
+    edit_chatroom_name = EditChatRoomName.Field()
