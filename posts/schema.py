@@ -6,6 +6,7 @@ from .models import Post, Comment
 from .enums import PostVisibilityEnums
 from users.models import Profile, User, UserFollows
 from users.enums import ProfileVisibilityEnums
+
 class PostVisibilityType(graphene.Enum):
     ACTIVE = PostVisibilityEnums.ACTIVE
     HIDDEN = PostVisibilityEnums.HIDDEN
