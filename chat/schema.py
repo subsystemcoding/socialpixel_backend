@@ -6,6 +6,8 @@ from .models import ChatRoom, Message
 from users.models import Profile, User
 from posts.models import Post
 
+from posts.schema import ModifierEnumsType
+
 class MessageType(DjangoObjectType):
     def resolve_image(self, info):
         """Resolve product image absolute path"""
@@ -74,6 +76,30 @@ class CreateChatRoom(graphene.Mutation):
                 success=True
             )
 
+class DeleteChatRoom(graphene.Mutation):
+
+    class Arguments:
+        id = graphene.ID(required=True, description="Unique ID of Chat to be deleted")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the chatroom was deleted successfully.")
+
+    
+    def mutate(self, info, id):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to delete on posts!')
+        else:
+            chatroom = ChatRoom.objects.get(id=id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (chatroom.created_by != current_user_profile):
+                raise GraphQLError('You must be chat creator to delete on chatroom!')
+            else:
+                chatroom.delete()
+                
+                return DeleteChatRoom(
+                    success=True
+                )
+
 class TextMessage(graphene.Mutation):
     class Arguments:
         room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
@@ -134,9 +160,64 @@ class PostMessage(graphene.Mutation):
                 success=True
             )
 
+class DeleteMessage(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True, description="Unique ID of Message to be deleted")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+
+    def mutate(self, info, id):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to delete on posts!')
+        else:
+            message = Message.objects.get(id=id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (message.author != current_user_profile):
+                raise GraphQLError('You must be chat creator to delete on chatroom!')
+            else:
+                message.delete()
+                
+                return DeleteMessage(
+                    success=True
+                )
+
+class ChatMembership(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True, description="Unique ID of Chatroom to be change membership")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+    
+    def mutate(self, info, id, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to upvote posts!')
+        else:
+            chatroom = ChatRoom.objects.get(id=id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if modifier == ModifierEnumsType.ADD:
+                if not chatroom.members.filter(user=current_user_profile).exists():
+                    chatroom.members.add(current_user_profile)
+                    chatroom.save()
+            if modifier == ModifierEnumsType.REMOVE:
+                if chatroom.members.filter(user=current_user_profile).exists():
+                    chatroom.members.remove(current_user_profile)
+                    chatroom.save()
+                
+            return ChatMembership(
+                success=True
+            )
+
+
+
 
 class ChatMutation(graphene.ObjectType):
     create_chatroom = CreateChatRoom.Field()
+    delete_chatroom = DeleteChatRoom.Field()
     text_message = TextMessage.Field()
     image_message = ImageMessage.Field()
     post_message = PostMessage.Field()
+    delete_message = DeleteMessage.Field()
+    modify_membership_chatroom = ChatMembership.Field()
