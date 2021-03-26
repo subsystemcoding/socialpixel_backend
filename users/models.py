@@ -143,7 +143,7 @@ class Profile(models.Model):
         processors=[SmartResize(300, 300)],
         format='JPEG',
         options={'quality': 85},
-)
+    )
 
     @classmethod
     def add_following(cls, user, following):

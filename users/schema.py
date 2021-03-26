@@ -4,8 +4,10 @@ from graphql_jwt.decorators import login_required
 from graphql_auth import mutations as gqlAuthMutations
 from graphql import GraphQLError
 
-from .models import User, Profile
+from .models import User, Profile, UserFollows
 from .enums import ProfileVisibilityEnums
+from posts.schema import ModifierEnumsType
+
 class UserType(DjangoObjectType):
     class Meta:
         model = User
@@ -23,7 +25,6 @@ class ProfileType(DjangoObjectType):
 class ProfileVisibilityType(graphene.Enum):
     PUBLIC = ProfileVisibilityEnums.PUBLIC
     PRIVATE = ProfileVisibilityEnums.PRIVATE
-
 
 class UsersQuery(graphene.AbstractType):
     users = graphene.List(UserType)
@@ -125,6 +126,35 @@ class EditProfileVisibility(graphene.Mutation):
                 success=True
             )
 
+class UserRelationship(graphene.Mutation):
+
+    class Arguments:
+        username = graphene.String(required=True, description="Username of profile to establish relationship")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the user relationhip operation successful.")
+
+    def mutate(self, info, username, modifier):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to follow on unfollow users!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            user_profile_to_follow = Profile.objects.get(user=User.objects.get(username=username))
+
+            if modifier == ModifierEnumsType.ADD:
+                if not UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=user_profile_to_follow).exists():
+                    user_follow = UserFollows(user_profile=current_user_profile, following_user_profile=user_profile_to_follow)
+                    user_follow.save()
+            if modifier == ModifierEnumsType.REMOVE:
+                if UserFollows.objects.filter(user_profile=current_user_profile, following_user_profile=user_profile_to_follow).exists():
+                    user_follow = UserFollows.objects.get(user_profile=current_user_profile, following_user_profile=user_profile_to_follow)
+                    user_follow.delete()
+
+            return UserRelationship(
+                success=True
+            )
+
+
 class AuthMutation(graphene.ObjectType):
     register = gqlAuthMutations.Register.Field()
     verify_account = gqlAuthMutations.VerifyAccount.Field()
@@ -152,3 +182,4 @@ class AuthMutation(graphene.ObjectType):
     update_lastname = EditProfileLastName.Field()
     update_bio = EditProfileBio.Field()
     update_profile_visibility = EditProfileVisibility.Field()
+    user_relationship = UserRelationship.Field()
