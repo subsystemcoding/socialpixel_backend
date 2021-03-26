@@ -17,7 +17,7 @@ class ChatRoom(models.Model):
     last_messaged_timestamp = models.DateTimeField(default=timezone.now)
 
     def __str__(self) -> str:
-        return str(self.name)
+        return str(self.id) + str(self.name)
 
 class Message(models.Model):
     author = models.ForeignKey(
@@ -53,3 +53,7 @@ class Message(models.Model):
 
     def __str__(self) -> str:
         return "{}:{}".format(str(self.author), self.room)
+
+    class Meta:
+        ordering = ['-timestamp']
+

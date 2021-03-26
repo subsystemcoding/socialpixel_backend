@@ -14,10 +14,10 @@ class MessageType(DjangoObjectType):
         if self.image:
             self.image = info.context.build_absolute_uri(self.image.url)
         return self.image
-        
     class Meta:
         model = Message
         fields = "__all__"
+        
 
 class ChatRoomType(DjangoObjectType):
     class Meta:
