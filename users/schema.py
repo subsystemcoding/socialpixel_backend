@@ -29,6 +29,10 @@ class ProfileVisibilityType(graphene.Enum):
 class UsersQuery(graphene.AbstractType):
     users = graphene.List(UserType)
     userprofile = graphene.Field(ProfileType, username=graphene.String(required=True))
+    userprofilefollowers = graphene.List(ProfileType)
+    userprofilefollowing = graphene.List(ProfileType)
+    userprofilefollowersnumber = graphene.Int()
+    userprofilefollowingnumber = graphene.Int()
 
     @login_required
     def resolve_users(self, info):
@@ -38,6 +42,26 @@ class UsersQuery(graphene.AbstractType):
     def resolve_userprofile(self, info, username):
         user = User.objects.get(username=username)
         return Profile.objects.get(user=user)
+
+    @login_required
+    def resolve_userprofilefollowers(self, info):
+        current_user_profile = Profile.objects.get(user=info.context.user)
+        return Profile.objects.filter(following__in=current_user_profile.followers.all())
+
+    @login_required
+    def resolve_userprofilefollowing(self, info):
+        current_user_profile = Profile.objects.get(user=info.context.user)
+        return Profile.objects.filter(followers__in=current_user_profile.following.all())
+
+    @login_required
+    def resolve_userprofilefollowersnumber(self, info):
+        current_user_profile = Profile.objects.get(user=info.context.user)
+        return Profile.objects.filter(following__in=current_user_profile.followers.all()).count()
+
+    @login_required
+    def resolve_userprofilefollowingnumber(self, info):
+        current_user_profile = Profile.objects.get(user=info.context.user)
+        return Profile.objects.filter(followers__in=current_user_profile.following.all()).count()
 
 class EditProfileFirstName(graphene.Mutation):
     class Arguments:
@@ -153,7 +177,6 @@ class UserRelationship(graphene.Mutation):
             return UserRelationship(
                 success=True
             )
-
 
 class AuthMutation(graphene.ObjectType):
     register = gqlAuthMutations.Register.Field()

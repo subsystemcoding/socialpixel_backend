@@ -24,7 +24,6 @@ class ChatRoomType(DjangoObjectType):
         model = ChatRoom
         fields = "__all__"
 
-
 class ChatQuery(graphene.AbstractType):
 
     chatroom = graphene.Field(ChatRoomType, id=graphene.ID(required=True), description="Get one chatroom based on given id")
@@ -235,7 +234,6 @@ class EditChatRoomName(graphene.Mutation):
                 return EditChatRoomName(
                     success=True
                 )
-
 
 class ChatMutation(graphene.ObjectType):
     create_chatroom = CreateChatRoom.Field()
