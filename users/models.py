@@ -122,24 +122,40 @@ class User(AbstractBaseUser, PermissionsMixin):
     def email_user(self, subject, message, from_email=None, **kwargs):
         """Send an email to this user."""
         send_mail(subject, message, from_email, [self.email], **kwargs)
-    
+
 
 def profile_image_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     filename = '{}.{}'.format('profile-image', ext)
     return PurePath('profiles', instance.user.username, filename)
 
-
+def profile_cover_image_upload_path(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = '{}.{}'.format('profile-cover-image', ext)
+    return PurePath('profiles', instance.user.username, filename)
 class Profile(models.Model):
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, primary_key=True, on_delete=models.CASCADE)
     bio = models.CharField(_('bio'), max_length=150, blank=True)
     visibility = models.IntegerField(choices=ProfileVisibilityEnums.choices, default=ProfileVisibilityEnums.PUBLIC)
+    
     image = ProcessedImageField(
         storage=OverwriteStorage(),
         upload_to=profile_image_upload_path, 
         blank=True, 
         help_text="Profile Picture",
         verbose_name="Profile Picture",
+        processors=[SmartResize(300, 300)],
+        format='JPEG',
+        options={'quality': 85},
+    )
+
+    cover_image = ProcessedImageField(
+        storage=OverwriteStorage(),
+        upload_to=profile_cover_image_upload_path, 
+        blank=True, 
+        help_text="Profile Cover Picture",
+        verbose_name="Profile Cover Picture",
         processors=[SmartResize(300, 300)],
         format='JPEG',
         options={'quality': 85},

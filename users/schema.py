@@ -125,6 +125,46 @@ class EditProfileBio(graphene.Mutation):
                 success=True
             )
 
+class EditProfileImage(graphene.Mutation):
+    class Arguments:
+        image = graphene.String(required=True, description="Image media for profile image.")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the change was successful.")
+
+    def mutate(self, info, image):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit profile!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            current_user_profile.image=info.context.FILES[image]
+            current_user_profile.save()
+                
+            return EditProfileImage(
+                success=True
+            )
+
+class EditProfileCoverImage(graphene.Mutation):
+    class Arguments:
+        image = graphene.String(required=True, description="Image media for profile image.")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the change was successful.")
+
+    def mutate(self, info, image):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit profile!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            current_user_profile.cover_image=info.context.FILES[image]
+            current_user_profile.save()
+                
+            return EditProfileCoverImage(
+                success=True
+            )
+
 class EditProfileVisibility(graphene.Mutation):
     class Arguments:
         modifier = ProfileVisibilityType(required=True, description="PRIVATE or Visibile")
@@ -204,5 +244,7 @@ class AuthMutation(graphene.ObjectType):
     update_firstname = EditProfileFirstName.Field()
     update_lastname = EditProfileLastName.Field()
     update_bio = EditProfileBio.Field()
+    update_profile_image = EditProfileImage.Field()
+    update_profile_cover_image = EditProfileCoverImage.Field()
     update_profile_visibility = EditProfileVisibility.Field()
     user_relationship = UserRelationship.Field()
