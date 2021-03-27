@@ -138,6 +138,7 @@ class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, primary_key=True, on_delete=models.CASCADE)
     bio = models.CharField(_('bio'), max_length=150, blank=True)
     visibility = models.IntegerField(choices=ProfileVisibilityEnums.choices, default=ProfileVisibilityEnums.PUBLIC)
+    points = models.IntegerField(default=0, verbose_name="Total points achieved by user")
     
     image = ProcessedImageField(
         storage=OverwriteStorage(),

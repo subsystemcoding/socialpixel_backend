@@ -168,10 +168,14 @@ class PostUpvote(graphene.Mutation):
                 if modifier == ModifierEnumsType.ADD:
                     if not post.upvotes.filter(user=current_user_profile).exists():
                         post.upvotes.add(current_user_profile)
+                        post.author.points = post.author.points + 1
+                        post.author.save()
                         post.save()
                 if modifier == ModifierEnumsType.REMOVE:
                     if post.upvotes.filter(user=current_user_profile).exists():
                         post.upvotes.remove(current_user_profile)
+                        post.author.points = post.author.points - 1
+                        post.author.save()
                         post.save()
                 
                 return PostUpvote(
