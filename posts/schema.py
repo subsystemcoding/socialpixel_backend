@@ -365,7 +365,7 @@ class EditPostVisibility(graphene.Mutation):
 class EditPostTags(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(required=True, description="Unique ID for post to be modified")
-        tags = graphene.List(graphene.String, required=True, description="List of usernames of to be/removed tagged users in post.")
+        tags = graphene.List(graphene.String, required=True, description="List of tags of to be/removed in post.")
         modifier = ModifierEnumsType(required=True, description="Add or remove")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")

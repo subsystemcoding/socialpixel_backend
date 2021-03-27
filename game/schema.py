@@ -5,6 +5,7 @@ import random
 from .models import Channel, Game, Leaderboard, LeaderboardRow
 from users.models import Profile
 from posts.models import Post
+from tags.models import Tag
 
 from posts.schema import ModifierEnumsType
 
@@ -41,6 +42,7 @@ class ChannelQuery(graphene.AbstractType):
     channel = graphene.Field(ChannelType, id=graphene.ID(required=True), description="Get one channel based on given id")
     channelname = graphene.Field(ChannelType, name=graphene.String(required=True), description="Get one channel based on given name")
     channels = graphene.List(ChannelType, description="Get all channels")
+    channels_by_tag = graphene.List(ChannelType, tags=graphene.List(graphene.String, required=True) ,description="Gets all channels based on given tags")
 
     def resolve_channel(self, info, id):
         if not info.context.user.is_authenticated:
@@ -60,29 +62,44 @@ class ChannelQuery(graphene.AbstractType):
         else:
             return Channel.objects.all()
 
+    def resolve_channels_by_tag(self, info, tags=[]):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get channels!')
+        else:
+            tagobjects = Tag.objects.filter(name__in=tags)
+            return Channel.objects.filter(tags__in=tagobjects)
+
 class GameQuery(graphene.AbstractType):
 
     game = graphene.Field(GameType, id=graphene.ID(required=True), description="Get one game based on given id")
     gamename = graphene.Field(GameType, name=graphene.String(required=True), description="Get one game based on given name")
     games = graphene.List(GameType, description="Get all games")
+    games_by_tag = graphene.List(GameType, tags=graphene.List(graphene.String, required=True) ,description="Gets all games based on given tags")
 
     def resolve_game(self, info, id):
         if not info.context.user.is_authenticated:
-            raise GraphQLError('You must be logged to get channel by channel_id!')
+            raise GraphQLError('You must be logged to get game by id!')
         else:
             return Game.objects.get(id=id)
     
     def resolve_gamename(self, info, name):
         if not info.context.user.is_authenticated:
-            raise GraphQLError('You must be logged to get channel by channel_id!')
+            raise GraphQLError('You must be logged to get game by name!')
         else:
             return Game.objects.get(name=name)
 
     def resolve_games(self, info):
         if not info.context.user.is_authenticated:
-            raise GraphQLError('You must be logged to get channels!')
+            raise GraphQLError('You must be logged to get games!')
         else:
             return Game.objects.all()
+    
+    def resolve_games_by_tag(self, info, tags=[]):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get games!')
+        else:
+            tagobjects = Tag.objects.filter(name__in=tags)
+            return Game.objects.filter(tags__in=tagobjects)
 
 class CreateChannel(graphene.Mutation):
 
@@ -91,11 +108,12 @@ class CreateChannel(graphene.Mutation):
         description = graphene.String(default_value="", description="Description of the Channel.")
         cover_image = graphene.String(default_value="", description="Cover image media for Channel.")
         avatar_image = graphene.String(default_value="", description="Avatar image media for Channel.")
+        tags = graphene.List(graphene.String, description="List of tags asscoiated with the Channel.")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the chatroom was created successfully.")
 
     
-    def mutate(self, info, name, description, cover_image, avatar_image):
+    def mutate(self, info, name, description, cover_image, avatar_image, tags=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create chatroom!')
         else:
@@ -113,6 +131,14 @@ class CreateChannel(graphene.Mutation):
             
             if avatar_image != "":
                 channel.avatar = image=info.context.FILES[avatar_image]
+                channel.save()
+
+            for tag in tags:
+                if not Tag.objects.filter(name=tag).exists():
+                    t = Tag(name=tag)
+                    t.save()
+
+                channel.tags.add(Tag.objects.get(name=tag))
                 channel.save()
         
             return CreateChannel(
@@ -228,13 +254,14 @@ class CreateGame(graphene.Mutation):
     class Arguments:
         name = graphene.String(required=True, description="Name of Game.")
         channel = graphene.String(required=True, description="Name of Channel.")
-        description = graphene.String(default_value="", description="Description of the Channel.")
-        game_image = graphene.String(default_value="", description="Game image media for Channel.")
+        description = graphene.String(default_value="", description="Description of the Game.")
+        game_image = graphene.String(default_value="", description="Game image media for Game.")
+        tags = graphene.List(graphene.String, description="List of tags asscoiated with the Game.")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the game was created successfully.")
 
     
-    def mutate(self, info, name, description, game_image, channel):
+    def mutate(self, info, name, description, game_image, channel, tags=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create game!')
         else:
@@ -258,6 +285,14 @@ class CreateGame(graphene.Mutation):
 
             if game_image != "":
                 game.image = image=info.context.FILES[game_image]
+                game.save()
+
+            for tag in tags:
+                if not Tag.objects.filter(name=tag).exists():
+                    t = Tag(name=tag)
+                    t.save()
+
+                game.tags.add(Tag.objects.get(name=tag))
                 game.save()
         
             return CreateChannel(
@@ -381,6 +416,73 @@ class RemoveGamePosts(graphene.Mutation):
                 success=True
             )
 
+class EditChannelTags(graphene.Mutation):
+    class Arguments:
+        name = graphene.ID(required=True, description="Unique name of Channel to be change tags")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+        tags = graphene.List(graphene.String, required=True, description="List of tags of to be/removed in Channel.")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the Channel was edited successfully.")
+
+    
+    def mutate(self, info, name, modifier, tags):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit channels!')
+        else:
+            channel = Channel.objects.get(name=name)
+            
+            if modifier == ModifierEnumsType.ADD:
+                for tag in tags:
+                    if not Tag.objects.filter(name=tag).exists():
+                        t = Tag(name=tag)
+                        t.save()
+                    channel.tags.add(Tag.objects.get(name=tag))
+                    channel.save()
+            if modifier == ModifierEnumsType.REMOVE:
+                for tag in tags:
+                    if Tag.objects.filter(name=tag).exists():
+                        channel.tags.remove(Tag.objects.get(name=tag))
+                        channel.save()
+                
+            return EditChannelTags(
+                success=True
+            )
+
+class EditGameTags(graphene.Mutation):
+    class Arguments:
+        name = graphene.ID(required=True, description="Unique name of game to be change tags")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+        tags = graphene.List(graphene.String, required=True, description="List of tags of to be/removed in game.")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the game was edited successfully.")
+
+    
+    def mutate(self, info, name, modifier, tags):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit game!')
+        else:
+            game = Game.objects.get(name=name)
+            
+            if modifier == ModifierEnumsType.ADD:
+                for tag in tags:
+                    if not Tag.objects.filter(name=tag).exists():
+                        t = Tag(name=tag)
+                        t.save()
+                    game.tags.add(Tag.objects.get(name=tag))
+                    game.save()
+            if modifier == ModifierEnumsType.REMOVE:
+                for tag in tags:
+                    if Tag.objects.filter(name=tag).exists():
+                        game.tags.remove(Tag.objects.get(name=tag))
+                        game.save()
+                
+            return EditGameTags(
+                success=True
+            )
+
+
 class ChannelMutation(graphene.ObjectType):
     create_channel = CreateChannel.Field()
     delete_channel = DeleteChannel.Field()
@@ -388,7 +490,7 @@ class ChannelMutation(graphene.ObjectType):
     channel_change_cover_image = ChannelChangeCoverImage.Field()
     channel_change_avatar_image = ChannelChangeAvatarImage.Field()
     channel_subscription = ChannelSubscription.Field()
-
+    edit_channel_tags = EditChannelTags.Field()
 class GameMutation(graphene.ObjectType):
     create_game = CreateGame.Field()
     delete_game = DeleteGame.Field()
@@ -396,3 +498,4 @@ class GameMutation(graphene.ObjectType):
     game_change_image = GameChangeImage.Field()
     game_add_post = AddGamePosts.Field()
     game_remove_post = RemoveGamePosts.Field()
+    edit_game_tags = EditGameTags.Field()
