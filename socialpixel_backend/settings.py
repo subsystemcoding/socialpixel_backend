@@ -202,7 +202,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 #location where django collect all static files
 STATIC_ROOT = Path(BASE_DIR)/'static'
 
-STATICFILES_DIRS = [Path(BASE_DIR)/'static']
+STATICFILES_DIRS = [Path(BASE_DIR)/'socialpixel_backend/static']
 
 
 
