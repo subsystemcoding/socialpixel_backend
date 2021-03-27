@@ -10,13 +10,13 @@ class Channel(models.Model):
 
     def coverimage_upload_path(instance, filename):
         ext = filename.split('.')[-1]
-        post = f'{instance.author}:{uuid4()}'
+        post = f'{instance.name}:{uuid4()}'
         filename = '{}.{}'.format(post, ext)
         return PurePath('channelCoverImages', filename)
 
     def avatar_upload_path(instance, filename):
         ext = filename.split('.')[-1]
-        post = f'{instance.author}:{uuid4()}'
+        post = f'{instance.name}:{uuid4()}'
         filename = '{}.{}'.format(post, ext)
         return PurePath('channelAvatars', filename)
 
@@ -82,7 +82,7 @@ class Game(models.Model):
 
     def gameimage_upload_path(instance, filename):
         ext = filename.split('.')[-1]
-        post = f'{instance.author}:{uuid4()}'
+        post = f'{instance.name}:{uuid4()}'
         filename = '{}.{}'.format(post, ext)
         return PurePath('gameImages', filename)
 
