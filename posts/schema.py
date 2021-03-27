@@ -113,13 +113,14 @@ class CreatePost(graphene.Mutation):
         gps_longitude = graphene.Decimal(default_value=0.0, description="GPS Coordinates: Longitude")
         gps_latitude = graphene.Decimal(default_value=0.0, description="GPS Coordinates: Latitude")
         tagged_users = graphene.List(graphene.String, description="List of usernames of tagged users in post.")
+        tags = graphene.List(graphene.String, description="List of tags asscoiated with the post.")
         image = graphene.String(required=True, description="Image media for post.")
 
     post = graphene.Field(PostType, description="Returns the new post that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the post was created successfully.")
 
     
-    def mutate(self, info, image, caption, gps_longitude, gps_latitude, tagged_users=[]):
+    def mutate(self, info, image, caption, gps_longitude, gps_latitude, tagged_users=[], tags=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create post!')
         else:
@@ -129,6 +130,15 @@ class CreatePost(graphene.Mutation):
 
             for user in tagged_users:
                 post.tagged_users.add(Profile.objects.get(user=User.objects.get(username=user)))
+                post.save()
+
+            for tag in tags:
+                if not Tag.objects.filter(name=tag).exists():
+                    t = Tag(name=tag)
+                    t.save()
+
+                post.tags.add(Tag.objects.get(name=tag))
+                post.save()
         
             return CreatePost(
                 post,
@@ -238,7 +248,7 @@ class PostIncrementViewCounter(graphene.Mutation):
             post.views = post.views + 1
             post.save()
                 
-            return PostComment(
+            return PostIncrementViewCounter(
                 success=True
             )
 
@@ -261,7 +271,7 @@ class DeletePost(graphene.Mutation):
             else:
                 post.delete()
                 
-                return PostComment(
+                return DeletePost(
                     success=True
                 )
 
@@ -287,14 +297,14 @@ class EditPostCaption(graphene.Mutation):
                 post.caption = text
                 post.save()
                 
-                return PostComment(
+                return EditPostCaption(
                     success=True
                 )
 
 class EditPostTaggedUsers(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(required=True, description="Unique ID for post to be modified")
-        tagged_users = graphene.List(graphene.String, description="List of usernames of to be/removed tagged users in post.")
+        tagged_users = graphene.List(graphene.String, required=True, description="List of usernames of to be/removed tagged users in post.")
         modifier = ModifierEnumsType(required=True, description="Add or remove")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
@@ -319,7 +329,7 @@ class EditPostTaggedUsers(graphene.Mutation):
                     for user in tagged_users:
                         post.tagged_users.remove(Profile.objects.get(user=User.objects.get(username=user)))
                         post.save()
-                return PostUpvote(
+                return EditPostTaggedUsers(
                     success=True
                 )
 
@@ -348,7 +358,43 @@ class EditPostVisibility(graphene.Mutation):
                 if modifier == PostVisibilityType.HIDDEN:
                     post.visibility = PostVisibilityEnums.HIDDEN
                     post.save()
-                return PostUpvote(
+                return EditPostVisibility(
+                    success=True
+                )
+
+class EditPostTags(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be modified")
+        tags = graphene.List(graphene.String, required=True, description="List of usernames of to be/removed tagged users in post.")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
+
+    
+    def mutate(self, info, post_id, modifier, tags):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author != current_user_profile):
+                raise GraphQLError('You must be post author to edit tags!')
+            else:
+                if modifier == ModifierEnumsType.ADD:
+                    for tag in tags:
+                        if not Tag.objects.filter(name=tag).exists():
+                            t = Tag(name=tag)
+                            t.save()
+                        post.tags.add(Tag.objects.get(name=tag))
+                        post.save()
+                if modifier == ModifierEnumsType.REMOVE:
+                    for tag in tags:
+                        if Tag.objects.filter(name=tag).exists():
+                            post.tags.remove(Tag.objects.get(name=tag))
+                            post.save()
+                return EditPostTags(
                     success=True
                 )
 
@@ -362,3 +408,4 @@ class PostsMutation(graphene.ObjectType):
     edit_post_caption = EditPostCaption.Field()
     edit_post_tagged_users = EditPostTaggedUsers.Field()
     edit_post_visibility = EditPostVisibility.Field()
+    edit_post_tags = EditPostTags.Field()
