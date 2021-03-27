@@ -2,7 +2,7 @@ from collections import defaultdict
 import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
-
+import random
 from .models import Channel, Game, Leaderboard, LeaderboardRow
 from users.models import Profile, User
 from posts.models import Post
@@ -240,14 +240,21 @@ class CreateGame(graphene.Mutation):
             raise GraphQLError('You must be logged to create game!')
         else:
             current_user_profile = Profile.objects.get(user=info.context.user)
+            channel = Channel.objects.get(name=channel)
+
             if not channel.subscribers.filter(user=current_user_profile).exists():
                 raise GraphQLError('You must be suscribed to channel to add games!')
 
-            if Game.objects.filter(name=name, channel=Channel.objects.get(name=channel)).exists():
+            if Game.objects.filter(name=name, channel=channel).exists():
                 raise GraphQLError('Game with same name exists in Channel. PLease try another name!')
             
-            channel = Channel.objects.get(name=channel)
+
             game = Game(name=name, channel=channel, description=description)
+            game.save()
+            color = "%06x"%random.randint(0,0xFFFFFF)
+            while Game.objects.all().values('pinColorHex').filter(pinColorHex=color).exists():
+                color = "%06x"%random.randint(0,0xFFFFFF)
+            game.pinColorHex = color
             game.save()
 
             if game_image != "":
