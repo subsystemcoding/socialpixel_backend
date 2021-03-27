@@ -26,7 +26,7 @@ class Channel(models.Model):
     )
 
     id = models.BigAutoField(primary_key=True)
-    name = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, unique=True)
     description = models.TextField(blank=True)
     subscribers = models.ManyToManyField(
         Profile, related_name='subscribed', blank=True)
@@ -115,3 +115,4 @@ class Game(models.Model):
     class Meta:
         verbose_name = 'Game'
         verbose_name_plural = 'Games'
+        unique_together = ['name', 'channel']
