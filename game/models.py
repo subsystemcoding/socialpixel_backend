@@ -118,3 +118,20 @@ class Game(models.Model):
         verbose_name = 'Game'
         verbose_name_plural = 'Games'
         unique_together = ['name', 'channel']
+
+class ValidatePost(models.Model):
+
+    id = models.BigAutoField(primary_key=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.id) + ':' + str(self.game) + " - " + str(self.post)
+
+    class Meta:
+        verbose_name = 'ValidatePost'
+        verbose_name_plural = 'ValidatePosts'
+        unique_together = ['game', 'post']
+        ordering = ['timestamp']

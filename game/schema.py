@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 import random
-from .models import Channel, Game, Leaderboard, LeaderboardRow
+from .models import Channel, Game, Leaderboard, LeaderboardRow, ValidatePost
 from users.models import Profile
 from posts.models import Post
 from tags.models import Tag
@@ -35,6 +35,11 @@ class GameType(DjangoObjectType):
     
     class Meta:
         model = Game
+        fields = "__all__"
+
+class ValidatePostType(DjangoObjectType):
+    class Meta:
+        model = ValidatePost
         fields = "__all__"
 
 class ChannelQuery(graphene.AbstractType):
@@ -100,6 +105,37 @@ class GameQuery(graphene.AbstractType):
         else:
             tagobjects = Tag.objects.filter(name__in=tags)
             return Game.objects.filter(tags__in=tagobjects)
+
+class ValidatePostQuery(graphene.AbstractType):
+
+    validate_post = graphene.Field(ValidatePostType, id=graphene.ID(required=True), description="Get one post to be validated based on given id")
+    validate_posts = graphene.List(ValidatePostType, description="Get all posts to be validated")
+    validate_posts_by_game = graphene.List(ValidatePostType, game=graphene.String(required=True), channel=graphene.String(required=True) ,description="Gets all posts to be validated for given game in channel")
+    validate_posts_by_channel = graphene.List(ValidatePostType, channel=graphene.String(required=True) ,description="Gets all posts to be validated for given channel")
+
+    def resolve_validate_post(self, info, id):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get post to be validated by id!')
+        else:
+            return ValidatePost.objects.get(id=id)
+    
+    def resolve_validate_posts(self, info):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get all posts to be validated!')
+        else:
+            return ValidatePost.objects.all()
+
+    def resolve_validate_posts_by_game(self, info, game, channel):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get post to be validated by game!')
+        else:
+            return ValidatePost.objects.filter(game=Game.objects.get(name=game, channel=channel))
+    
+    def resolve_validate_posts_by_channel(self, info, channel):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get post to be validated by channel!')
+        else:
+            return ValidatePost.objects.filter(channel=Channel.objects.get(name=channel))
 
 class CreateChannel(graphene.Mutation):
 
@@ -380,6 +416,10 @@ class AddGamePosts(graphene.Mutation):
                 raise GraphQLError('You must be post author to add post to game!')
             
             game.posts.add(post)
+
+            validate_post = ValidatePost(game=game, post=post, channel=game.channel)
+            validate_post.save()
+
             game.save()
 
             return RemoveGamePosts(
