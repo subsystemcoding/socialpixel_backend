@@ -6,6 +6,9 @@ from .models import Post, Comment
 from .enums import PostVisibilityEnums
 from users.models import Profile, User, UserFollows
 from users.enums import ProfileVisibilityEnums
+from tags.models import Tag
+from django.db.models import Q
+
 
 class PostVisibilityType(graphene.Enum):
     ACTIVE = PostVisibilityEnums.ACTIVE
@@ -63,6 +66,7 @@ class PostsQuery(graphene.AbstractType):
     post = graphene.Field(PostType, id=graphene.ID(required=True), description="Get one post based on given id")
     posts = graphene.List(PostType, description="Get all posts in the database that are PUBLIC")
     feed_posts = graphene.List(PostType, description="Gets all posts based on users followed by current user")
+    posts_by_tag = graphene.List(PostType, tags=graphene.List(graphene.String, required=True) ,description="Gets all posts based on given tags")
 
     def resolve_post(self, info, id):
         if not info.context.user.is_authenticated:
@@ -87,6 +91,20 @@ class PostsQuery(graphene.AbstractType):
             current_user_profile = Profile.objects.get(user=info.context.user)
             following = UserFollows.objects.filter(user_profile=current_user_profile).values('following_user_profile')
             return Post.objects.filter(author__in=following, visibility=PostVisibilityEnums.ACTIVE).order_by('-date_created')
+        
+    def resolve_posts_by_tag(self, info, tags=[]):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get post by tags!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            following = UserFollows.objects.filter(user_profile=current_user_profile).values('following_user_profile')
+            public_users = Profile.objects.filter(visibility=ProfileVisibilityEnums.PUBLIC)
+            print(tags)
+            tagobjects = Tag.objects.filter(name__in=tags)
+            print(tagobjects)
+            criterion1 = Q(author__in=public_users, visibility=PostVisibilityEnums.ACTIVE, tags__in=tagobjects)
+            criterion2 = Q(author__in=following, visibility=PostVisibilityEnums.ACTIVE, tags__in=tagobjects)
+            return Post.objects.filter(criterion1 | criterion2).order_by('-date_created')
 
 class CreatePost(graphene.Mutation):
 
