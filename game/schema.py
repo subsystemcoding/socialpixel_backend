@@ -1,10 +1,9 @@
-from collections import defaultdict
 import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 import random
 from .models import Channel, Game, Leaderboard, LeaderboardRow
-from users.models import Profile, User
+from users.models import Profile
 from posts.models import Post
 
 from posts.schema import ModifierEnumsType

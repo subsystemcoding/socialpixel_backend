@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
     'game.apps.GameConfig',
+    'tags.apps.TagsConfig',
     'webapp.apps.WebappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
