@@ -482,7 +482,6 @@ class EditGameTags(graphene.Mutation):
                 success=True
             )
 
-
 class ChannelMutation(graphene.ObjectType):
     create_channel = CreateChannel.Field()
     delete_channel = DeleteChannel.Field()
