@@ -73,12 +73,14 @@ class LeaderboardRow(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     points = models.IntegerField()
     leaderboard = models.ForeignKey(Leaderboard, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return str(self.user) + ":" + str(self.user)
     class Meta:
         verbose_name = 'LeaderboardRow'
         verbose_name_plural = 'LeaderboardRows'
+        ordering = ['timestamp']
 
 class Game(models.Model):
 
@@ -95,6 +97,7 @@ class Game(models.Model):
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True)
+    creator = models.ForeignKey(Profile, on_delete=models.CASCADE)
 
     image = models.ImageField(
         upload_to=gameimage_upload_path,
@@ -124,7 +127,8 @@ class ValidatePost(models.Model):
     id = models.BigAutoField(primary_key=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, related_name="post", on_delete=models.CASCADE)
+    creator_post = models.ForeignKey(Post, related_name="creator_post", on_delete=models.CASCADE)
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
 
     def __str__(self):

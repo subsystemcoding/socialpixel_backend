@@ -1,13 +1,20 @@
 import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
-import random
+
 from .models import Channel, Game, Leaderboard, LeaderboardRow, ValidatePost
 from users.models import Profile
 from posts.models import Post
 from tags.models import Tag
+from django.dispatch import Signal
+
+post_added_to_game = Signal()
 
 from posts.schema import ModifierEnumsType
+
+class ValidatorEnumsType(graphene.Enum):
+    ACCEPT = 1
+    REJECT = 0
 
 class ChannelType(DjangoObjectType):
     def resolve_cover_image(self, info):
@@ -293,11 +300,12 @@ class CreateGame(graphene.Mutation):
         description = graphene.String(default_value="", description="Description of the Game.")
         game_image = graphene.String(default_value="", description="Game image media for Game.")
         tags = graphene.List(graphene.String, description="List of tags asscoiated with the Game.")
+        posts = graphene.List(graphene.ID, required=True, description="List of post_id to be added to the Game.")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the game was created successfully.")
 
     
-    def mutate(self, info, name, description, game_image, channel, tags=[]):
+    def mutate(self, info, name, description, game_image, channel, tags=[], posts=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create game!')
         else:
@@ -311,12 +319,7 @@ class CreateGame(graphene.Mutation):
                 raise GraphQLError('Game with same name exists in Channel. PLease try another name!')
             
 
-            game = Game(name=name, channel=channel, description=description)
-            game.save()
-            color = "%06x"%random.randint(0,0xFFFFFF)
-            while Game.objects.all().values('pinColorHex').filter(pinColorHex=color).exists():
-                color = "%06x"%random.randint(0,0xFFFFFF)
-            game.pinColorHex = color
+            game = Game(name=name, channel=channel, description=description, creator=current_user_profile)
             game.save()
 
             if game_image != "":
@@ -330,8 +333,15 @@ class CreateGame(graphene.Mutation):
 
                 game.tags.add(Tag.objects.get(name=tag))
                 game.save()
+
+            for post_id in posts:
+                post = Post.objects.get(post_id=post_id)
+
+                game.posts.add(post)
+                game.save()
         
-            return CreateChannel(
+            return CreateGame(
+                game,
                 success=True
             )
 
@@ -394,12 +404,13 @@ class GameChangeImage(graphene.Mutation):
 
 class AddGamePosts(graphene.Mutation):
     class Arguments:
-        name = graphene.ID(required=True, description="Unique name of Game to be add post too")
+        name = graphene.String(required=True, description="Unique name of Game to be add post too")
         post_id = graphene.ID(required=True, description="Unique ID for post to be added")
+        original_post_id = graphene.ID(required=True, description="Unique ID for the original post")
 
     success = graphene.Boolean(default_value=False, description="Returns whether the post was added successfully.")
     
-    def mutate(self, info, name, post_id):
+    def mutate(self, info, name, post_id, original_post_id):
 
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to add posts to games!')
@@ -411,13 +422,12 @@ class AddGamePosts(graphene.Mutation):
                 raise GraphQLError('You must be suscribed to channel to add post to game!')
 
             post = Post.objects.get(post_id=post_id)
+            original_post = Post.objects.get(post_id=original_post_id)
 
             if post.author != current_user_profile:
                 raise GraphQLError('You must be post author to add post to game!')
-            
-            game.posts.add(post)
 
-            validate_post = ValidatePost(game=game, post=post, channel=game.channel)
+            validate_post = ValidatePost(game=Game.objects.get(name=name), post=post, channel=game.channel, creator_post=original_post)
             validate_post.save()
 
             game.save()
@@ -522,6 +532,49 @@ class EditGameTags(graphene.Mutation):
                 success=True
             )
 
+class ValidatePostMutationMethod(graphene.Mutation):
+
+    class Arguments:
+        post_id = graphene.ID(required=True, description="post_id in Game to be validated")
+        game = graphene.String(required=True, description="Unique name for game in which post to be validated")
+        modifier = ValidatorEnumsType(required=True, description="Accept or Reject")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was validated successfully.")
+    
+    def mutate(self, info, post_id, game, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to add posts to games!')
+        else:
+            game = Game.objects.get(name=game)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if not game.channel.subscribers.filter(user=current_user_profile).exists():
+                raise GraphQLError('You must be suscribed to channel to validate posts for game!')
+
+            post = Post.objects.get(post_id=post_id)
+            validate_post = ValidatePost.objects.get(game=game, post=post)
+
+            if modifier == ValidatorEnumsType.ACCEPT:
+                game.posts.add(post)
+                game.save()
+                post.author.points = post.author.points + 100
+                post.author.save()
+                current_user_profile.points = current_user_profile.points + 50
+                current_user_profile.save()
+                validate_post.delete()
+                post_added_to_game.send(sender=self.__class__, post_author = post.author.user.username, gamename=game.name, channelname=game.channel.name)
+            if modifier == ValidatorEnumsType.REJECT:
+                validate_post.delete()
+                current_user_profile.points = current_user_profile.points + 200
+                current_user_profile.save()
+
+            game.save()
+
+            return ValidatePostMutationMethod(
+                success=True
+            )
+
 class ChannelMutation(graphene.ObjectType):
     create_channel = CreateChannel.Field()
     delete_channel = DeleteChannel.Field()
@@ -538,3 +591,6 @@ class GameMutation(graphene.ObjectType):
     game_add_post = AddGamePosts.Field()
     game_remove_post = RemoveGamePosts.Field()
     edit_game_tags = EditGameTags.Field()
+
+class ValidatePostMutation(graphene.ObjectType):
+    validate_post = ValidatePostMutationMethod.Field()
