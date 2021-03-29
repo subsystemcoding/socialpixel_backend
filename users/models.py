@@ -154,7 +154,6 @@ class Profile(models.Model):
         blank=True, 
         help_text="Profile Cover Picture",
         verbose_name="Profile Cover Picture",
-        processors=[SmartResize(300, 300)],
         format='JPEG',
         options={'quality': 85},
     )
