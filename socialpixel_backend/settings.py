@@ -61,10 +61,12 @@ INSTALLED_APPS = [
     'graphql_auth',
     'django_filters',
     'storages',
+    'corsheaders',
     'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -94,7 +96,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'socialpixel_backend.wsgi.application'
-
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
@@ -161,10 +163,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = '/static/'
+# STATIC_URL = '/static/'
 
-MEDIA_ROOT = Path(BASE_DIR)/'media'
-MEDIA_URL = '/media/'
+# MEDIA_ROOT = Path(BASE_DIR)/'media'
+# MEDIA_URL = '/media/'
 
 
 # User Model
@@ -199,7 +201,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 # EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 #location where django collect all static files
 STATIC_ROOT = Path(BASE_DIR)/'static'
 
@@ -211,8 +212,14 @@ STATICFILES_DIRS = []
 
 # STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
 
-# AWS_STORAGE_BUCKET_NAME = 'static'
-
-# AWS_ACCESS_KEY_ID = env('MINIO_ROOT_USER')
-# AWS_SECRET_ACCESS_KEY = env('MINIO_ROOT_PASSWORD')
-# AWS_S3_ENDPOINT_URL = 'http://localhost:9000'
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = 'socialpixelmedia'
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.me-south-1.amazonaws.com' % AWS_STORAGE_BUCKET_NAME
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+AWS_LOCATION = 'static'
+STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+DEFAULT_FILE_STORAGE = 'socialpixel_backend.storage.MediaStorage'

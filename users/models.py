@@ -10,7 +10,6 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from imagekit.models import ProcessedImageField
 from imagekit.processors import SmartResize
 
-from .storage import OverwriteStorage
 from .enums import ProfileVisibilityEnums
 
 class CustomUserManager(BaseUserManager):
@@ -141,7 +140,6 @@ class Profile(models.Model):
     points = models.IntegerField(default=0, verbose_name="Total points achieved by user")
     
     image = ProcessedImageField(
-        storage=OverwriteStorage(),
         upload_to=profile_image_upload_path, 
         blank=True, 
         help_text="Profile Picture",
@@ -152,7 +150,6 @@ class Profile(models.Model):
     )
 
     cover_image = ProcessedImageField(
-        storage=OverwriteStorage(),
         upload_to=profile_cover_image_upload_path, 
         blank=True, 
         help_text="Profile Cover Picture",
