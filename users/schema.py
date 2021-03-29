@@ -18,6 +18,19 @@ class UserType(DjangoObjectType):
         )
 
 class ProfileType(DjangoObjectType):
+
+    def resolve_image(self, info):
+        """Resolve profile image absolute path"""
+        if self.image:
+            self.image = info.context.build_absolute_uri(self.image.url)
+        return self.image
+
+    def resolve_cover_image(self, info):
+        """Resolve profile image absolute path"""
+        if self.cover_image:
+            self.cover_image = info.context.build_absolute_uri(self.cover_image.url)
+        return self.cover_image
+
     class Meta:
         model = Profile
         fields = "__all__"
