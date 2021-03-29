@@ -1,3 +1,4 @@
+from game.models import Channel
 import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
@@ -115,12 +116,13 @@ class CreatePost(graphene.Mutation):
         tagged_users = graphene.List(graphene.String, description="List of usernames of tagged users in post.")
         tags = graphene.List(graphene.String, description="List of tags asscoiated with the post.")
         image = graphene.String(required=True, description="Image media for post.")
+        channel = graphene.String(default_value='', description="Channel name for post.")
 
     post = graphene.Field(PostType, description="Returns the new post that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the post was created successfully.")
 
     
-    def mutate(self, info, image, caption, gps_longitude, gps_latitude, tagged_users=[], tags=[]):
+    def mutate(self, info, image, caption, channel, gps_longitude, gps_latitude, tagged_users=[], tags=[]):
         if not info.context.user.is_authenticated:
             raise GraphQLError('You must be logged to create post!')
         else:
@@ -138,6 +140,12 @@ class CreatePost(graphene.Mutation):
                     t.save()
 
                 post.tags.add(Tag.objects.get(name=tag))
+                post.save()
+
+            if channel != '':
+                if not Channel.objects.filter(name=channel).exists():
+                    raise GraphQLError('Channel does not exist. Provide existing Channel')
+                post.channel = Channel.objects.get(name=channel)
                 post.save()
         
             return CreatePost(
@@ -402,6 +410,34 @@ class EditPostTags(graphene.Mutation):
                     success=True
                 )
 
+class EditPostChannel(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be upvoted")
+        channel = graphene.String(required=True, description="Channel name")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
+
+    
+    def mutate(self, info, post_id, channel):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to edit posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if (post.author != current_user_profile):
+                raise GraphQLError('You must be post author to edit post!')
+            else:
+                if not Channel.objects.filter(name=channel).exists():
+                    raise GraphQLError('Channel does not exist. Provide existing Channel')
+                post.channel = Channel.objects.get(name=channel)
+                post.save()
+                
+                return EditPostChannel(
+                    success=True
+                )
+
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
     post_upvote = PostUpvote.Field()
@@ -413,3 +449,4 @@ class PostsMutation(graphene.ObjectType):
     edit_post_tagged_users = EditPostTaggedUsers.Field()
     edit_post_visibility = EditPostVisibility.Field()
     edit_post_tags = EditPostTags.Field()
+    edit_post_channel = EditPostChannel.Field()

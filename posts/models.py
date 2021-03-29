@@ -48,6 +48,7 @@ class Post(models.Model):
     visibility = models.IntegerField(
         choices=PostVisibilityEnums.choices, default=PostVisibilityEnums.ACTIVE)
     tags = models.ManyToManyField(Tag, related_name="tagged_post", blank=True)
+    channel = models.ForeignKey('game.Channel', on_delete=models.SET_NULL, null=True, blank=True)
 
     image = models.ImageField(
         upload_to=imagepost_upload_path,
