@@ -4,6 +4,7 @@ from uuid import uuid4
 from users.models import Profile
 from posts.models import Post
 from tags.models import Tag
+from chat.models import ChatRoom
 from upload_validator import FileTypeValidator
 from django.core.validators import FileExtensionValidator
 
@@ -29,6 +30,7 @@ class Channel(models.Model):
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=256, unique=True)
     description = models.TextField(blank=True)
+    chatroom = models.ForeignKey(ChatRoom, related_name='channel_chatroom', on_delete=models.CASCADE, blank=True, null=True)
     subscribers = models.ManyToManyField(
         Profile, related_name='subscribed', blank=True)
     tags = models.ManyToManyField(Tag, related_name="tagged_channel", blank=True)

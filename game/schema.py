@@ -6,6 +6,7 @@ from .models import Channel, Game, Leaderboard, LeaderboardRow, ValidatePost
 from users.models import Profile
 from posts.models import Post
 from tags.models import Tag
+from chat.models import ChatRoom
 from django.dispatch import Signal
 
 post_added_to_game = Signal()
@@ -193,6 +194,14 @@ class CreateChannel(graphene.Mutation):
 
                 channel.tags.add(Tag.objects.get(name=tag))
                 channel.save()
+
+            chatroomname = '{}-chatroom'.format(name)
+            chatroom = ChatRoom(created_by=current_user_profile, name=chatroomname)
+            chatroom.save()
+            chatroom.members.add(current_user_profile)
+            chatroom.save()
+            channel.chatroom = chatroom
+            channel.save()
         
             return CreateChannel(
                 success=True
@@ -292,10 +301,14 @@ class ChannelSubscription(graphene.Mutation):
             if modifier == ModifierEnumsType.ADD:
                 if not channel.subscribers.filter(user=current_user_profile).exists():
                     channel.subscribers.add(current_user_profile)
+                    channel.chatroom.members.add(current_user_profile)
+                    channel.chatroom.save()
                     channel.save()
             if modifier == ModifierEnumsType.REMOVE:
                 if channel.subscribers.filter(user=current_user_profile).exists():
                     channel.subscribers.remove(current_user_profile)
+                    channel.chatroom.members.remove(current_user_profile)
+                    channel.chatroom.save()
                     channel.save()
                 
             return ChannelSubscription(
