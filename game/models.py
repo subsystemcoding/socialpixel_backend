@@ -110,6 +110,8 @@ class Game(models.Model):
         blank=True
     )
 
+    subscribers = models.ManyToManyField(Profile, related_name='subscribed_to_game', blank=True)
+
     leaderboard = models.ForeignKey(Leaderboard, on_delete=models.CASCADE, blank=True, null=True)
     posts = models.ManyToManyField(Post, related_name="in_game", blank=True)
     channel = models.ForeignKey(Channel, on_delete=models.CASCADE)

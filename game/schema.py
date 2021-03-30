@@ -348,6 +348,9 @@ class CreateGame(graphene.Mutation):
             game = Game(name=name, channel=channel, description=description, creator=current_user_profile)
             game.save()
 
+            game.subscribers.add(current_user_profile)
+            game.save()
+
             if game_image != "":
                 game.image = image=info.context.FILES[game_image]
                 game.save()
@@ -446,6 +449,9 @@ class AddGamePosts(graphene.Mutation):
             
             if not game.channel.subscribers.filter(user=current_user_profile).exists():
                 raise GraphQLError('You must be suscribed to channel to add post to game!')
+            
+            if not game.subscribers.filter(user=current_user_profile).exists():
+                raise GraphQLError('You must be suscribed to game to add post to game!')
 
             post = Post.objects.get(post_id=post_id)
             original_post = Post.objects.get(post_id=original_post_id)
@@ -601,6 +607,36 @@ class ValidatePostMutationMethod(graphene.Mutation):
                 success=True
             )
 
+class GameSubscription(graphene.Mutation):
+    class Arguments:
+        channel = graphene.String(required=True, description="Unique name of Channel of game")
+        game = graphene.String(required=True, description="Unique name of game to be change membership")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
+    
+    def mutate(self, info, channel, game, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to add/remove channel memberships!')
+        else:
+            channelobj = Channel.objects.get(name=channel)
+            game = Game.objects.filter(channel=channelobj, name=game)[0]
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            if modifier == ModifierEnumsType.ADD:
+                if not game.subscribers.filter(user=current_user_profile).exists():
+                    game.subscribers.add(current_user_profile)
+                    game.save()
+            if modifier == ModifierEnumsType.REMOVE:
+                if game.subscribers.filter(user=current_user_profile).exists():
+                    game.subscribers.remove(current_user_profile)
+                    game.save()
+                
+            return GameSubscription(
+                success=True
+            )
+
 class ChannelMutation(graphene.ObjectType):
     create_channel = CreateChannel.Field()
     delete_channel = DeleteChannel.Field()
@@ -617,6 +653,7 @@ class GameMutation(graphene.ObjectType):
     game_add_post = AddGamePosts.Field()
     game_remove_post = RemoveGamePosts.Field()
     edit_game_tags = EditGameTags.Field()
+    game_subscription = GameSubscription.Field()
 
 class ValidatePostMutation(graphene.ObjectType):
     validate_post = ValidatePostMutationMethod.Field()
