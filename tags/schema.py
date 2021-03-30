@@ -32,6 +32,7 @@ class CreateTag(graphene.Mutation):
         name = graphene.String(required=True, description="Tag name.")
         description = graphene.String(default_value="", description="Description of the tag.")
 
+    tag = graphene.Field(TagType, description="Returns the new tag that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the tag was created successfully.")
 
     
@@ -46,6 +47,7 @@ class CreateTag(graphene.Mutation):
             tag.save()
         
             return CreateTag(
+                tag,
                 success=True
             )
 

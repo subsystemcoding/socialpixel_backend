@@ -164,6 +164,7 @@ class CreateChannel(graphene.Mutation):
         avatar_image = graphene.String(default_value="", description="Avatar image media for Channel.")
         tags = graphene.List(graphene.String, description="List of tags asscoiated with the Channel.")
 
+    channel = graphene.Field(ChannelType, description="Returns the new channel that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the chatroom was created successfully.")
 
     
@@ -204,6 +205,7 @@ class CreateChannel(graphene.Mutation):
             channel.save()
         
             return CreateChannel(
+                channel,
                 success=True
             )
 
@@ -324,7 +326,8 @@ class CreateGame(graphene.Mutation):
         game_image = graphene.String(default_value="", description="Game image media for Game.")
         tags = graphene.List(graphene.String, description="List of tags asscoiated with the Game.")
         posts = graphene.List(graphene.ID, required=True, description="List of post_id to be added to the Game.")
-
+        
+    game = graphene.Field(GameType, description="Returns the new game that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the game was created successfully.")
 
     

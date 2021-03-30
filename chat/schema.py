@@ -17,7 +17,6 @@ class MessageType(DjangoObjectType):
     class Meta:
         model = Message
         fields = "__all__"
-        
 
 class ChatRoomType(DjangoObjectType):
     class Meta:
@@ -54,6 +53,7 @@ class CreateChatRoom(graphene.Mutation):
         members = graphene.List(graphene.String, description="List of usernames of members.")
         name = graphene.String(required=True, description="Name of Chat.")
 
+    chatroom = graphene.Field(ChatRoomType, description="Returns the new chatroom that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the chatroom was created successfully.")
 
     
@@ -72,6 +72,7 @@ class CreateChatRoom(graphene.Mutation):
             chatroom.save()
         
             return CreateChatRoom(
+                chatroom,
                 success=True
             )
 
@@ -104,6 +105,7 @@ class TextMessage(graphene.Mutation):
         room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
         text = graphene.String(default_value="", description="An (optional) text message.")
 
+    message = graphene.Field(MessageType, description="Returns the new message that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
 
     def mutate(self, info, text, room):
@@ -116,6 +118,7 @@ class TextMessage(graphene.Mutation):
             message.save()
 
             return TextMessage(
+                message,
                 success=True
             )
 
@@ -124,6 +127,7 @@ class ImageMessage(graphene.Mutation):
         room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
         image = graphene.String(description="Image media for chat.")
 
+    message = graphene.Field(MessageType, description="Returns the new message that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
 
     def mutate(self, info, image, room):
@@ -136,6 +140,7 @@ class ImageMessage(graphene.Mutation):
             message.save()
 
             return TextMessage(
+                message,
                 success=True
             )
 
@@ -144,6 +149,7 @@ class PostMessage(graphene.Mutation):
         room = graphene.ID(required=True, description="Unique ID for chatroom for message to be posted in")
         post = graphene.ID(description="Unique ID for post to send")
 
+    message = graphene.Field(MessageType, description="Returns the new message that was created successfully.")
     success = graphene.Boolean(default_value=False, description="Returns whether the post was upvoted successfully.")
 
     def mutate(self, info, room, post):
@@ -156,6 +162,7 @@ class PostMessage(graphene.Mutation):
             message.save()
 
             return TextMessage(
+                message,
                 success=True
             )
 
