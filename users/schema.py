@@ -35,6 +35,11 @@ class ProfileType(DjangoObjectType):
         model = Profile
         fields = "__all__"
 
+class UserFollowsType(DjangoObjectType):
+    class Meta:
+        model = UserFollows
+        fields = "__all__"
+
 class ProfileVisibilityType(graphene.Enum):
     PUBLIC = ProfileVisibilityEnums.PUBLIC
     PRIVATE = ProfileVisibilityEnums.PRIVATE
@@ -46,6 +51,10 @@ class UsersQuery(graphene.AbstractType):
     userprofilefollowing = graphene.List(ProfileType)
     userprofilefollowersnumber = graphene.Int()
     userprofilefollowingnumber = graphene.Int()
+    userprofilefollowersbyusername = graphene.List(ProfileType, username=graphene.String(required=True))
+    userprofilefollowingbyusername = graphene.List(ProfileType, username=graphene.String(required=True))
+    userprofilefollowersnumberbyusername = graphene.Int(username=graphene.String(required=True))
+    userprofilefollowingnumberbyusername = graphene.Int(username=graphene.String(required=True))
 
     @login_required
     def resolve_users(self, info):
@@ -75,6 +84,26 @@ class UsersQuery(graphene.AbstractType):
     def resolve_userprofilefollowingnumber(self, info):
         current_user_profile = Profile.objects.get(user=info.context.user)
         return Profile.objects.filter(followers__in=current_user_profile.following.all()).count()
+
+    @login_required
+    def resolve_userprofilefollowersbyusername(self, info, username):
+        user_profile = Profile.objects.get(user=User.objects.get(username=username))
+        return Profile.objects.filter(following__in=user_profile.followers.all())
+
+    @login_required
+    def resolve_userprofilefollowingbyusername(self, info, username):
+        user_profile = Profile.objects.get(user=User.objects.get(username=username))
+        return Profile.objects.filter(followers__in=user_profile.following.all())
+
+    @login_required
+    def resolve_userprofilefollowersnumberbyusername(self, info, username):
+        user_profile = Profile.objects.get(user=User.objects.get(username=username))
+        return Profile.objects.filter(following__in=user_profile.followers.all()).count()
+
+    @login_required
+    def resolve_userprofilefollowingnumberbyusername(self, info, username):
+        user_profile = Profile.objects.get(user=User.objects.get(username=username))
+        return Profile.objects.filter(followers__in=user_profile.following.all()).count()
 
 class EditProfileFirstName(graphene.Mutation):
     class Arguments:
