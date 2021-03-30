@@ -382,7 +382,6 @@ class EditPostTags(graphene.Mutation):
 
     success = graphene.Boolean(default_value=False, description="Returns whether the post was edited successfully.")
 
-    
     def mutate(self, info, post_id, modifier, tags):
 
         if not info.context.user.is_authenticated:
