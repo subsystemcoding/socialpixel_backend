@@ -44,6 +44,16 @@ class GameType(DjangoObjectType):
         model = Game
         fields = "__all__"
 
+class LeaderboardType(DjangoObjectType):
+    class Meta:
+        model = Leaderboard
+        fields = "__all__"
+
+class LeaderboardRowType(DjangoObjectType):    
+    class Meta:
+        model = LeaderboardRow
+        fields = "__all__"
+
 class ValidatePostType(DjangoObjectType):
     class Meta:
         model = ValidatePost
