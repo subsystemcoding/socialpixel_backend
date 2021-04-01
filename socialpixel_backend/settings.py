@@ -206,6 +206,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 DEFAULT_FROM_EMAIL='subsystemcoding.socialpixel@gmail.com'
+SEND_ACTIVATION_EMAIL=False
 
 # STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 #location where django collect all static files
