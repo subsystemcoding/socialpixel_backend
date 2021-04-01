@@ -91,7 +91,9 @@ class PostsQuery(graphene.AbstractType):
         else:
             current_user_profile = Profile.objects.get(user=info.context.user)
             following = UserFollows.objects.filter(user_profile=current_user_profile).values('following_user_profile')
-            return Post.objects.filter(author__in=following, visibility=PostVisibilityEnums.ACTIVE).order_by('-date_created')
+            criterion1 = Q(author__in=following, visibility=PostVisibilityEnums.ACTIVE)
+            criterion2 = Q(author=current_user_profile, visibility=PostVisibilityEnums.ACTIVE)
+            return Post.objects.filter(criterion1 | criterion2).order_by('-date_created')
         
     def resolve_posts_by_tag(self, info, tags=[]):
         if not info.context.user.is_authenticated:
