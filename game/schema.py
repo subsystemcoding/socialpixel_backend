@@ -2,7 +2,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 
-from .models import Channel, Game, Leaderboard, LeaderboardRow, ValidatePost
+from .models import Channel, Game, Leaderboard, LeaderboardRow, ValidatePost, ReportedPost
 from users.models import Profile, User
 from posts.models import Post
 from tags.models import Tag
@@ -58,6 +58,11 @@ class LeaderboardRowType(DjangoObjectType):
 class ValidatePostType(DjangoObjectType):
     class Meta:
         model = ValidatePost
+        fields = "__all__"
+
+class ReportedPostType(DjangoObjectType):
+    class Meta:
+        model = ReportedPost
         fields = "__all__"
 
 class ChannelQuery(graphene.AbstractType):
@@ -161,6 +166,32 @@ class ValidatePostQuery(graphene.AbstractType):
             raise GraphQLError('You must be logged to get post to be validated by channel!')
         else:
             return ValidatePost.objects.filter(channel=Channel.objects.get(name=channel))
+
+class ReportedPostQuery(graphene.AbstractType):
+
+    reported_post = graphene.Field(ReportedPost, id=graphene.ID(required=True), description="Get one post that is reported based on given id")
+    reported_posts = graphene.List(ReportedPost, channelname=graphene.String(required=True), description="Get all posts to be validated in given channel")
+
+    def resolve_reported_post(self, info, id):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get post that was reported by id!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            reportedpost = ReportedPost.objects.get(id=id)
+            if not reportedpost.channel.moderators.filter(user=current_user_profile).exists():
+                raise GraphQLError('You must be moderator of channel to get reported post!')
+            return reportedpost
+    
+    def resolve_reported_posts(self, info, channelname):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get post that was reported to be validated!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            channel = Channel.objects.get(name=channelname)
+            if not channel.moderators.filter(user=current_user_profile).exists():
+                raise GraphQLError('You must be moderator of channel to get reported posts of channel!')
+            return ReportedPost.objects.filter(channel=channel)
+
 
 class CreateChannel(graphene.Mutation):
 
@@ -509,7 +540,7 @@ class AddGamePosts(graphene.Mutation):
 
             game.save()
 
-            return RemoveGamePosts(
+            return AddGamePosts(
                 success=True
             )
 
@@ -609,7 +640,7 @@ class EditGameTags(graphene.Mutation):
                 success=True
             )
 
-class ValidatePostMutationMethod(graphene.Mutation):
+class ValidatePostGameMutationMethod(graphene.Mutation):
 
     class Arguments:
         post_id = graphene.ID(required=True, description="post_id in Game to be validated")
@@ -625,9 +656,6 @@ class ValidatePostMutationMethod(graphene.Mutation):
         else:
             game = Game.objects.get(name=game)
             current_user_profile = Profile.objects.get(user=info.context.user)
-            
-            if not game.channel.subscribers.filter(user=current_user_profile).exists():
-                raise GraphQLError('You must be suscribed to channel to validate posts for game!')
 
             post = Post.objects.get(post_id=post_id)
             validate_post = ValidatePost.objects.get(game=game, post=post)
@@ -648,7 +676,7 @@ class ValidatePostMutationMethod(graphene.Mutation):
 
             game.save()
 
-            return ValidatePostMutationMethod(
+            return ValidatePostGameMutationMethod(
                 success=True
             )
 
@@ -682,6 +710,92 @@ class GameSubscription(graphene.Mutation):
                 success=True
             )
 
+class ReportPost(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be added")
+        game = graphene.String(required=True, description="Name of Game.")
+    
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was reported successfully.")
+    
+    def mutate(self, info, name, post_id, channel):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to report posts!')
+        else:
+            post = Post.objects.get(post_id=post_id)
+            game = Game.objects.get(name=name)
+            channel = Channel.objects.get(name=game.channel.name)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+            
+            reportedPost = ReportedPost(reported_by=current_user_profile, game=game, post=post, channel=channel)
+            reportedPost.save()
+
+            return ReportPost(
+                success=True
+            )
+
+class AddPostWithValidation(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.ID(required=True, description="Unique ID for post to be added")
+        original_post_id = graphene.ID(required=True, description="Unique ID for the original post")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was added successfully.")
+    
+    def mutate(self, info, post_id, original_post_id):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to add posts to games!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+
+            post = Post.objects.get(post_id=post_id)
+            original_post = Post.objects.get(post_id=original_post_id)
+
+            if post.author != current_user_profile:
+                raise GraphQLError('You must be post author to add post to game!')
+
+            validate_post = ValidatePost(post=post, creator_post=original_post)
+            validate_post.save()
+
+            return AddPostWithValidation(
+                success=True
+            )
+
+class ValidatePostMutationMethod(graphene.Mutation):
+
+    class Arguments:
+        id = graphene.ID(required=True, description="post_id in Game to be validated")
+        modifier = ValidatorEnumsType(required=True, description="Accept or Reject")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was validated successfully.")
+    
+    def mutate(self, info, id, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to add posts to games!')
+        else:
+            current_user_profile = Profile.objects.get(user=info.context.user)
+
+            validate_post = ValidatePost.objects.get(id=id)
+            post = validate_post.post
+
+            if modifier == ValidatorEnumsType.ACCEPT:
+                post.author.points = post.author.points + 100
+                post.author.save()
+                current_user_profile.points = current_user_profile.points + 50
+                current_user_profile.save()
+                validate_post.delete()
+            if modifier == ValidatorEnumsType.REJECT:
+                validate_post.delete()
+                current_user_profile.points = current_user_profile.points + 50
+                current_user_profile.save()
+
+
+            return ValidatePostMutationMethod(
+                success=True
+            )
+
+
 class ChannelMutation(graphene.ObjectType):
     create_channel = CreateChannel.Field()
     delete_channel = DeleteChannel.Field()
@@ -703,4 +817,5 @@ class GameMutation(graphene.ObjectType):
     game_subscription = GameSubscription.Field()
 
 class ValidatePostMutation(graphene.ObjectType):
-    validate_post = ValidatePostMutationMethod.Field()
+    validate_post_fwith_game = ValidatePostGameMutationMethod.Field()
+    validate_post_without_game = ValidatePostMutationMethod.Field()

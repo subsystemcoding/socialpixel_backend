@@ -172,7 +172,6 @@ class PostsQuery(graphene.AbstractType):
             return Post.objects.filter(latitude_radius, longitude_radius).order_by('-date_created')
 
 
-
 class CreatePost(graphene.Mutation):
 
     class Arguments:
@@ -230,7 +229,6 @@ class CreatePost(graphene.Mutation):
                 success=True
             )
 
-
 class PostUpvote(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(
@@ -272,7 +270,6 @@ class PostUpvote(graphene.Mutation):
                     success=True
                 )
 
-
 class PostComment(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(
@@ -302,7 +299,6 @@ class PostComment(graphene.Mutation):
                 return PostComment(
                     success=True
                 )
-
 
 class PostCommentReply(graphene.Mutation):
     class Arguments:
@@ -336,7 +332,6 @@ class PostCommentReply(graphene.Mutation):
                     success=True
                 )
 
-
 class PostIncrementViewCounter(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(
@@ -361,7 +356,6 @@ class PostIncrementViewCounter(graphene.Mutation):
             return PostIncrementViewCounter(
                 success=True
             )
-
 
 class DeletePost(graphene.Mutation):
     class Arguments:
@@ -389,7 +383,6 @@ class DeletePost(graphene.Mutation):
                     success=True
                 )
 
-
 class EditPostCaption(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(
@@ -416,7 +409,6 @@ class EditPostCaption(graphene.Mutation):
                 return EditPostCaption(
                     success=True
                 )
-
 
 class EditPostTaggedUsers(graphene.Mutation):
     class Arguments:
@@ -455,7 +447,6 @@ class EditPostTaggedUsers(graphene.Mutation):
                     success=True
                 )
 
-
 class EditPostVisibility(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(
@@ -486,7 +477,6 @@ class EditPostVisibility(graphene.Mutation):
                 return EditPostVisibility(
                     success=True
                 )
-
 
 class EditPostTags(graphene.Mutation):
     class Arguments:
@@ -527,7 +517,6 @@ class EditPostTags(graphene.Mutation):
                     success=True
                 )
 
-
 class EditPostChannel(graphene.Mutation):
     class Arguments:
         post_id = graphene.ID(
@@ -557,7 +546,6 @@ class EditPostChannel(graphene.Mutation):
                 return EditPostChannel(
                     success=True
                 )
-
 
 class PostsMutation(graphene.ObjectType):
     create_post = CreatePost.Field()
