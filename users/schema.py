@@ -55,6 +55,7 @@ class UsersQuery(graphene.AbstractType):
     userprofilefollowingbyusername = graphene.List(ProfileType, username=graphene.String(required=True))
     userprofilefollowersnumberbyusername = graphene.Int(username=graphene.String(required=True))
     userprofilefollowingnumberbyusername = graphene.Int(username=graphene.String(required=True))
+    userprofile_search = graphene.List(ProfileType, query=graphene.String(required=True) ,description="Gets all profiles based on given query")
 
     @login_required
     def resolve_users(self, info):
@@ -104,6 +105,13 @@ class UsersQuery(graphene.AbstractType):
     def resolve_userprofilefollowingnumberbyusername(self, info, username):
         user_profile = Profile.objects.get(user=User.objects.get(username=username))
         return Profile.objects.filter(followers__in=user_profile.following.all()).count()
+
+    def resolve_userprofile_search(self, info, query):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get channels by search!')
+        else:
+            users_list = User.objects.filter(username__iregex=r""+ query +"")
+            return Profile.objects.filter(user__in=users_list)
 
 class EditProfileFirstName(graphene.Mutation):
     class Arguments:

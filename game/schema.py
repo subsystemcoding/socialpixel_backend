@@ -66,6 +66,7 @@ class ChannelQuery(graphene.AbstractType):
     channelname = graphene.Field(ChannelType, name=graphene.String(required=True), description="Get one channel based on given name")
     channels = graphene.List(ChannelType, description="Get all channels")
     channels_by_tag = graphene.List(ChannelType, tags=graphene.List(graphene.String, required=True) ,description="Gets all channels based on given tags")
+    channel_search = graphene.List(ChannelType, query=graphene.String(required=True) ,description="Gets all channels based on given query")
 
     def resolve_channel(self, info, id):
         if not info.context.user.is_authenticated:
@@ -91,6 +92,12 @@ class ChannelQuery(graphene.AbstractType):
         else:
             tagobjects = Tag.objects.filter(name__in=tags)
             return Channel.objects.filter(tags__in=tagobjects)
+
+    def resolve_channel_search(self, info, query):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get channels by search!')
+        else:
+            return Channel.objects.filter(name__iregex=r""+ query +"")
 
 class GameQuery(graphene.AbstractType):
 
@@ -354,7 +361,6 @@ class ChannelModerator(graphene.Mutation):
             return ChannelModerator(
                 success=True
             )
-
 
 class CreateGame(graphene.Mutation):
 

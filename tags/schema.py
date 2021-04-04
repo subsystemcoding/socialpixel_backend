@@ -13,6 +13,7 @@ class TagQuery(graphene.AbstractType):
 
     tag = graphene.Field(TagType, name=graphene.String(required=True), description="Get one tag based on given name")
     tags = graphene.List(TagType, description="Get all tags")
+    tag_search = graphene.List(TagType, query=graphene.String(required=True) ,description="Gets all tags based on given query")
 
     def resolve_tag(self, info, name):
         if not info.context.user.is_authenticated:
@@ -25,6 +26,12 @@ class TagQuery(graphene.AbstractType):
             raise GraphQLError('You must be logged to get tags!')
         else:
             return Tag.objects.all()
+
+    def resolve_tag_search(self, info, query):
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to get tags by search!')
+        else:
+            return Tag.objects.filter(name__iregex=r""+ query +"")
 
 class CreateTag(graphene.Mutation):
 
