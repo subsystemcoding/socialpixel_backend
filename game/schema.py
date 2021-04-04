@@ -3,7 +3,7 @@ from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 
 from .models import Channel, Game, Leaderboard, LeaderboardRow, ValidatePost
-from users.models import Profile
+from users.models import Profile, User
 from posts.models import Post
 from tags.models import Tag
 from chat.models import ChatRoom
@@ -177,7 +177,7 @@ class CreateChannel(graphene.Mutation):
                 raise GraphQLError('Channel with same name exists. PLease try another name!')
             channel = Channel(name=name, description=description)
             channel.save()
-            channel.subscribers.add(current_user_profile)
+            channel.moderators.add(current_user_profile)
             channel.save()
 
             if cover_image != "":
@@ -316,6 +316,45 @@ class ChannelSubscription(graphene.Mutation):
             return ChannelSubscription(
                 success=True
             )
+
+class ChannelModerator(graphene.Mutation):
+    class Arguments:
+        channel = graphene.String(required=True, description="Unique name of Channel to be change moderator")
+        username = graphene.String(required=True, description="Unique username of User to be change moderator status")
+        modifier = ModifierEnumsType(required=True, description="Add or remove")
+
+    success = graphene.Boolean(default_value=False, description="Returns whether the post was changed successfully.")
+    
+    def mutate(self, info, channel, username, modifier):
+
+        if not info.context.user.is_authenticated:
+            raise GraphQLError('You must be logged to add/remove channel memberships!')
+        else:
+            channel = Channel.objects.get(name=channel)
+            current_user_profile = Profile.objects.get(user=info.context.user)
+
+            if not channel.moderators.filter(user=current_user_profile).exists():
+                raise GraphQLError('You must be moderator of channel to add/remove channel moderators!')
+
+            userprofile = Profile.objects.get(user=User.objects.get(username=username))
+            
+            if modifier == ModifierEnumsType.ADD:
+                if not channel.moderators.filter(user=userprofile).exists():
+                    channel.moderators.add(userprofile)
+                    channel.chatroom.members.add(userprofile)
+                    channel.chatroom.save()
+                    channel.save()
+            if modifier == ModifierEnumsType.REMOVE:
+                if channel.moderators.filter(user=userprofile).exists():
+                    channel.moderators.remove(userprofile)
+                    channel.chatroom.members.remove(userprofile)
+                    channel.chatroom.save()
+                    channel.save()
+
+            return ChannelModerator(
+                success=True
+            )
+
 
 class CreateGame(graphene.Mutation):
 
@@ -645,6 +684,8 @@ class ChannelMutation(graphene.ObjectType):
     channel_change_avatar_image = ChannelChangeAvatarImage.Field()
     channel_subscription = ChannelSubscription.Field()
     edit_channel_tags = EditChannelTags.Field()
+    channel_moderator_membership = ChannelModerator.Field()
+
 class GameMutation(graphene.ObjectType):
     create_game = CreateGame.Field()
     delete_game = DeleteGame.Field()

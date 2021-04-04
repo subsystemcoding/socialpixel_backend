@@ -220,6 +220,7 @@ STATICFILES_STORAGE = 'socialpixel_backend.storages.StaticStorage'
 MEDIAFILES_LOCATION = 'media'
 DEFAULT_FILE_STORAGE = 'socialpixel_backend.storages.MediaStorage'
 
+# SITE_ID=1
 
 # DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
