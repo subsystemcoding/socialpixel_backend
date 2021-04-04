@@ -33,10 +33,8 @@ class Post(models.Model):
     )
     date_created = models.DateTimeField(auto_now_add=True)
     caption = models.CharField(max_length=256, blank=True)
-    gps_longitude = models.DecimalField(
-        max_digits=9, decimal_places=6, blank=True, null=True)
-    gps_latitude = models.DecimalField(
-        max_digits=9, decimal_places=6, blank=True, null=True)
+    gps_longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    gps_latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     tagged_users = models.ManyToManyField(
         Profile,
         related_name='tagged',
