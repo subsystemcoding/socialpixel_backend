@@ -130,10 +130,10 @@ class ValidatePost(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, blank=True, null=True)
     post = models.ForeignKey(Post, related_name="post", on_delete=models.CASCADE)
     creator_post = models.ForeignKey(Post, related_name="creator_post", on_delete=models.CASCADE)
-    channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return str(self.id) + ':' + str(self.game) + " - " + str(self.post)
@@ -141,5 +141,22 @@ class ValidatePost(models.Model):
     class Meta:
         verbose_name = 'ValidatePost'
         verbose_name_plural = 'ValidatePosts'
+        ordering = ['timestamp']
+
+class ReportedPost(models.Model):
+
+    id = models.BigAutoField(primary_key=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    reported_by = models.ForeignKey(Profile, on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, related_name="reported_post", on_delete=models.CASCADE)
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return str(self.id) + ':' + str(self.channel) + " - " + str(self.post)
+
+    class Meta:
+        verbose_name = 'ReportedPost'
+        verbose_name_plural = 'ReportedPosts'
         unique_together = ['game', 'post']
         ordering = ['timestamp']
