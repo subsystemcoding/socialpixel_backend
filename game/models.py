@@ -31,8 +31,8 @@ class Channel(models.Model):
     name = models.CharField(max_length=256, unique=True)
     description = models.TextField(blank=True)
     chatroom = models.ForeignKey(ChatRoom, related_name='channel_chatroom', on_delete=models.CASCADE, blank=True, null=True)
-    subscribers = models.ManyToManyField(
-        Profile, related_name='subscribed', blank=True)
+    subscribers = models.ManyToManyField(Profile, related_name='subscribed', blank=True)
+    moderators = models.ManyToManyField(Profile, related_name='moderater')
     tags = models.ManyToManyField(Tag, related_name="tagged_channel", blank=True)
     cover_image = models.ImageField(
         upload_to=coverimage_upload_path,
