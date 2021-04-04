@@ -817,5 +817,6 @@ class GameMutation(graphene.ObjectType):
     game_subscription = GameSubscription.Field()
 
 class ValidatePostMutation(graphene.ObjectType):
-    validate_post_fwith_game = ValidatePostGameMutationMethod.Field()
+    add_post_for_validation = AddPostWithValidation.Field()
+    validate_post_with_game = ValidatePostGameMutationMethod.Field()
     validate_post_without_game = ValidatePostMutationMethod.Field()
