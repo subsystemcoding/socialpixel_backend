@@ -1,0 +1,88 @@
+# Generation of Kubernetes YAML is still under development!
+#
+# Save the output of this file and use kubectl create -f to import
+# it into Kubernetes.
+#
+# Created with podman-2.0.6
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2021-03-31T23:18:32Z"
+  labels:
+    app: socialpixel
+  name: socialpixel
+spec:
+  containers:
+  - command:
+    - postgres
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/13/bin
+    - name: TERM
+      value: xterm
+    - name: POSTGRES_USER
+      value: socialpixel
+    - name: REDIS_PORT
+      value: "6379"
+    - name: AWS_SECRET_ACCESS_KEY
+      value: aHxP5PaBI3AaqxHU8o0kTTL85Fkc5tEKmKbgUriy
+    - name: MINIO_ROOT_PASSWORD
+      value: minioadmin
+    - name: PG_MAJOR
+      value: "13"
+    - name: PGDATA
+      value: /var/lib/postgresql/data
+    - name: GOSU_VERSION
+      value: "1.12"
+    - name: LANG
+      value: en_US.utf8
+    - name: AWS_ACCESS_KEY_ID
+      value: AKIAVLDAVFOXEUJPARHX
+    - name: POSTGRES_PORT
+      value: "5432"
+    - name: MINIO_OPTS
+      value: '"--address :9000"'
+    - name: REDIS_HOST
+      value: localhost
+    - name: POSTGRES_HOST
+      value: 127.0.0.1
+    - name: container
+      value: podman
+    - name: POSTGRES_PASSWORD
+      value: PjdpT&nc9yP!_9MQ5%nhGTd
+    - name: SECRET_KEY
+      value: '*t_ois5o7(+ipj57#j4!29rn+qbrj^d@#&-+5b)phtm1ay!90o'
+    - name: DEBUG
+      value: "True"
+    - name: MINIO_ROOT_USER
+      value: minioadmin
+    - name: PORT
+      value: "5432"
+    - name: POSTGRES_DB
+      value: socialpixel_django
+    - name: PG_VERSION
+      value: 13.2-1.pgdg100+1
+    - name: HOSTNAME
+      value: socialpixel
+    image: docker.io/library/postgres:latest
+    name: postgresqldb
+    ports:
+    - containerPort: 5432
+      hostPort: 5432
+      protocol: TCP
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+      seLinuxOptions: {}
+    workingDir: /
+status: {}
+---
+metadata:
+  creationTimestamp: null
+spec: {}
+status:
+  loadBalancer: {}
+

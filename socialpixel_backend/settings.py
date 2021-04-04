@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import environ
+import dj_database_url
 
 env = environ.Env(
     # set casting, default value
@@ -35,7 +36,8 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+
+ALLOWED_HOSTS = ['socialpixel-backend.herokuapp.com','*']
 
 
 # Application definition
@@ -45,6 +47,7 @@ INSTALLED_APPS = [
     'posts.apps.PostsConfig',
     'users.apps.UsersConfig',
     'game.apps.GameConfig',
+    'tags.apps.TagsConfig',
     'webapp.apps.WebappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -69,6 +72,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'socialpixel_backend.urls'
@@ -76,7 +80,7 @@ ROOT_URLCONF = 'socialpixel_backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [Path(BASE_DIR)/'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -109,6 +113,10 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     },
 }
+
+db_from_env = dj_database_url.config(conn_max_age=600)
+DATABASES['default'].update(db_from_env)
+
 
 
 # Password validation
@@ -155,8 +163,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-MEDIA_ROOT = Path(BASE_DIR)/'media'
-MEDIA_URL = '/media/'
+# MEDIA_ROOT = Path(BASE_DIR)/'media'
+# MEDIA_URL = '/media/'
 
 
 # User Model
@@ -187,14 +195,44 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = env('SENDGRID_API_KEY')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+DEFAULT_FROM_EMAIL='subsystemcoding.socialpixel@gmail.com'
+SEND_ACTIVATION_EMAIL=False
+
+# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+#location where django collect all static files
+# STATIC_ROOT = Path(BASE_DIR)/'static'
+
+STATICFILES_DIRS = []
+
+STATICFILES_LOCATION = 'static'
+STATICFILES_STORAGE = 'socialpixel_backend.storages.StaticStorage'
+
+MEDIAFILES_LOCATION = 'media'
+DEFAULT_FILE_STORAGE = 'socialpixel_backend.storages.MediaStorage'
+
 
 # DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
-# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+AWS_STORAGE_BUCKET_NAME = 'socialpixel'
+AWS_S3_REGION_NAME = 'me-south-1'
 
-# AWS_STORAGE_BUCKET_NAME = 'static'
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.me-south-1.amazonaws.com' % AWS_STORAGE_BUCKET_NAME
 
-# AWS_ACCESS_KEY_ID = env('MINIO_ROOT_USER')
-# AWS_SECRET_ACCESS_KEY = env('MINIO_ROOT_PASSWORD')
-# AWS_S3_ENDPOINT_URL = 'http://localhost:9000'
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_S3_OBJECT_PARAMETERS = {
+    'Expires': 'Thu, 31 Dec 2099 20:00:00 GMT',
+    'CacheControl': 'max-age=94608000',
+}
